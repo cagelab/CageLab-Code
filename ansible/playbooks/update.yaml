@@ -69,10 +69,18 @@
       become: true
 
     - name: Update apt cache
-      ansible.builtin.apt:
-        update_cache: true
+      ansible.builtin.command:
+        argv:
+          - apt-get
+          - -o
+          - DPkg::Lock::Timeout=60
+          - update
       become: true
-      failed_when: false
+      environment:
+        DEBIAN_FRONTEND: noninteractive
+      timeout: 90
+      changed_when: false
+      ignore_errors: true
 
     - name: Make sure git/curl etc. are installed
       ansible.builtin.apt:
@@ -98,7 +106,7 @@
 
     # run the makelinks script to ensure all symlinks are in place
     - name: Run makelinks script
-      ansible.builtin.command: "{{ ansible_facts['user_dir'] }}/Code/Setup/makelinks.sh"
+      ansible.builtin.command: "{{ ansible_facts['user_dir'] }}/Code/CageLab-Code/setup/makelinks.sh"
       become: true
       environment:
         HOME: "{{ ansible_facts['user_dir'] }}"

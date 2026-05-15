@@ -16,7 +16,7 @@ while getopts "cs" opt; do
 	esac
 done
 
-export SPATH="$HOME/Code/Setup"
+export SPATH="$HOME/Code/CageLab-Code"
 
 # Create some folders if not already existing
 mkdir -p "$HOME/Code"
@@ -39,51 +39,51 @@ sudo chown -R "$USER":"$USER" /usr/local/etc || true
 	sudo ln -svf /usr/lib/x86_64-linux-gnu/libglut.so.3.12.0 /usr/lib/x86_64-linux-gnu/libglut.so.3
 
 # link some cagelab stuff
-ln -sfv "$SPATH/config/toggleInput" "/usr/local/bin"
-ln -sfv "$SPATH/config/mediamtx.yml" "/usr/local/etc"
-ln -svf "$HOME/Code/CageLab/software/scripts/"* "$HOME/bin"
-ln -sfv "$HOME/Code/CageLab/software/services/"*.service "$HOME/.config/systemd/user"
+ln -sfv "$SPATH/scripts/toggleInput" "/usr/local/bin"
+ln -sfv "$SPATH/setup/config/mediamtx.yml" "/usr/local/etc"
+ln -svf "$SPATH/scripts/"* "$HOME/bin"
+ln -sfv "$SPATH/services/"*.service "$HOME/.config/systemd/user"
 # Link theConductor service for newer MATLAB if present
-[[ -d "/usr/local/MATLAB/R2025a" ]] && ln -sfv "$HOME/Code/CageLab/software/services/theConductor2025a.dservice" "$HOME/.config/systemd/user/theConductor.service"
-[[ -d "/usr/local/MATLAB/R2025b" ]] && ln -sfv "$HOME/Code/CageLab/software/services/theConductor2025b.dservice" "$HOME/.config/systemd/user/theConductor.service"
-[[ -d "/usr/local/MATLAB/R2026a" ]] && ln -sfv "$HOME/Code/CageLab/software/services/theConductor2026a.dservice" "$HOME/.config/systemd/user/theConductor.service"
-ln -svf "$HOME/Code/Setup/config/sshconfig" "$HOME/.ssh/config"
-ln -sfv "$SPATH/config/.rsync-excludes" "$HOME/.config"
+[[ -d "/usr/local/MATLAB/R2025a" ]] && ln -sfv "$SPATH/services/theConductor2025a.dservice" "$HOME/.config/systemd/user/theConductor.service"
+[[ -d "/usr/local/MATLAB/R2025b" ]] && ln -sfv "$SPATH/services/theConductor2025b.dservice" "$HOME/.config/systemd/user/theConductor.service"
+[[ -d "/usr/local/MATLAB/R2026a" ]] && ln -sfv "$SPATH/services/theConductor2026a.dservice" "$HOME/.config/systemd/user/theConductor.service"
+ln -svf "$SPATH/setup/config/sshconfig" "$HOME/.ssh/config"
+ln -sfv "$SPATH/setup/config/.rsync-excludes" "$HOME/.config"
 
 # Link .zshrc only for non-controllers
 if [[ $controller == false ]]; then
-	echo "Linking zsh configuration files..."
+	echo "===>>> Linking zsh configuration files..."
 	[[ -f "$HOME/.zshrc" ]] && cp "$HOME/.zshrc" "$HOME/.config/.zshrc$(date -Iseconds).bak"
-	ln -svf "$SPATH/config/zshrc" "$HOME/.zshrc"
-	ln -svf "$SPATH/config/zsh-"* "$HOME/.config"
-	ln -svf "$SPATH/config/aliases" "$HOME/.config"
+	ln -svf "$SPATH/setup/config/zshrc" "$HOME/.zshrc"
+	ln -svf "$SPATH/setup/config/zsh-"* "$HOME/.config"
+	ln -svf "$SPATH/setup/config/aliases" "$HOME/.config"
 fi
 
-# ansible config only for controllers
+# ansible config (only for controllers)
 if [[ $controller == true ]]; then
-	echo "Linking ansible controller files..."
+	echo "===>>> Linking ansible controller files..."
 	sudo ln -svf "$SPATH/ansible/ansible.cfg" "/etc/ansible/ansible.cfg"
 	sudo ln -svf "$SPATH/ansible/inventory/hosts" "/etc/ansible/hosts"
-	sudo ln -svf "$SPATH/ansible/playbooks" "$HOME/.ansible/playbooks"
-	sudo ln -svf "$SPATH/ansible/roles" "$HOME/.ansible/roles" 
+	sudo ln -svf "$SPATH/ansible/playbooks" "$HOME/.ansible"
+	#sudo ln -svf "$SPATH/ansible/roles" "$HOME/.ansible/roles" 
 fi
 
 # Link pixi-global.toml
 if [[ ! -f "$HOME/.pixi/manifests/pixi-global.toml" ]]; then
 	mkdir -p "$HOME/.pixi/manifests"
-	ln -svf "$SPATH/config/pixi-global.toml" "$HOME/.pixi/manifests/"
+	ln -svf "$SPATH/setup/config/pixi-global.toml" "$HOME/.pixi/manifests/"
 fi
 
 # few others
-sudo cp "$SPATH/config/10-libuvc.rules" "/etc/udev/rules.d/"
-ln -svf "$SPATH/config/i3config" "$HOME/.config/i3/config"
-ln -svf "$SPATH/config/Xresources" "$HOME/.Xresources"
-ln -svf "$SPATH/config/cagelab-monitor.yaml" "$HOME/.config/tmuxp"
+sudo cp "$SPATH/setup/config/10-libuvc.rules" "/etc/udev/rules.d/"
+ln -svf "$SPATH/setup/config/i3config" "$HOME/.config/i3/config"
+ln -svf "$SPATH/setup/config/Xresources" "$HOME/.Xresources"
+ln -svf "$SPATH/setup/config/cagelab-monitor.yaml" "$HOME/.config/tmuxp"
 if [[ ! -f "$HOME/.tmux.conf" ]]; then
-	ln -svf "$SPATH/config/tmux.conf" "$HOME/.tmux.conf"
+	ln -svf "$SPATH/setup/config/tmux.conf" "$HOME/.tmux.conf"
 fi
 if [[ ! -f "$HOME/.config/starship.toml" ]]; then
-	ln -svf "$SPATH/config/starship.toml" "$HOME/.config/starship.toml"
+	ln -svf "$SPATH/setup/config/starship.toml" "$HOME/.config/starship.toml"
 fi
 
 # Ensure user ownership for everything created in home
