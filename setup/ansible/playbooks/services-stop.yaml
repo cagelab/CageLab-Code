@@ -1,0 +1,26 @@
+---
+- name: Stop Cagelab Services
+  hosts: all
+  gather_facts: true
+  vars:
+    user_services:
+      - theConductor
+      - cogmoteGO
+      - obs-fix
+      - obs
+      - mediamtx
+  tasks:
+    - name: Stop user-scoped systemd services
+      ansible.builtin.systemd:
+        name: "{{ item }}"
+        state: stopped
+        scope: user
+      become: true
+      become_user: "{{ ansible_facts['user_id'] }}"
+      environment:
+        XDG_RUNTIME_DIR: "/run/user/{{ ansible_facts['user_uid'] }}"
+      loop: "{{ user_services }}"
+      register: service_stop
+      failed_when: false
+      # Per-item changed_when not supported with loops on systemd module.
+      changed_when: false

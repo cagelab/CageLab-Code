@@ -1,0 +1,156 @@
+version = 1
+
+[envs.sd]
+channels = ["conda-forge"]
+dependencies = { sd = "*" }
+exposed = { sd = "sd" }
+
+[envs.jq]
+channels = ["conda-forge"]
+dependencies = { jq = "*" }
+exposed = { jq = "jq" }
+
+[envs.fzf]
+channels = ["conda-forge"]
+dependencies = { fzf = "*" }
+exposed = { fzf = "fzf" }
+
+[envs.eza]
+channels = ["conda-forge"]
+dependencies = { eza = "*" }
+exposed = { eza = "eza" }
+
+[envs.hyperfine]
+channels = ["conda-forge"]
+dependencies = { hyperfine = "*" }
+exposed = { hyperfine = "hyperfine" }
+
+[envs.starship]
+channels = ["conda-forge"]
+dependencies = { starship = "*" }
+exposed = { starship = "starship" }
+
+[envs.mosh]
+channels = ["conda-forge"]
+dependencies = { mosh = "*" }
+exposed = { mosh = "mosh", mosh-client = "mosh-client", mosh-server = "mosh-server" }
+
+[envs.librsvg]
+channels = ["conda-forge"]
+dependencies = { librsvg = "*" }
+exposed = { ".librsvg-post-link" = ".librsvg-post-link", ".librsvg-pre-unlink" = ".librsvg-pre-unlink", rsvg-convert = "rsvg-convert" }
+
+[envs.nvim]
+channels = ["conda-forge"]
+dependencies = { nvim = "*" }
+exposed = { nvim = "nvim" }
+
+[envs.img2pdf]
+channels = ["conda-forge"]
+dependencies = { img2pdf = "*" }
+exposed = { img2pdf = "img2pdf", img2pdf-gui = "img2pdf-gui" }
+
+[envs.ripgrep]
+channels = ["conda-forge"]
+dependencies = { ripgrep = "*" }
+exposed = { rg = "rg" }
+
+[envs.p7zip]
+channels = ["conda-forge"]
+dependencies = { p7zip = "*" }
+exposed = { 7z = "7z", 7za = "7za", 7zr = "7zr" }
+
+[envs.yq]
+channels = ["conda-forge"]
+dependencies = { yq = "*" }
+exposed = { tomlq = "tomlq", yq = "yq", xq = "xq" }
+
+[envs.dua-cli]
+channels = ["conda-forge"]
+dependencies = { dua-cli = "*" }
+exposed = { dua = "dua" }
+
+[envs.moreutils]
+channels = ["conda-forge"]
+dependencies = { moreutils = "*" }
+exposed = { chronic = "chronic", combine = "combine", errno = "errno", ifdata = "ifdata", ifne = "ifne", isutf8 = "isutf8", lckdo = "lckdo", mispipe = "mispipe", parallel = "parallel", pee = "pee", sponge = "sponge", ts = "ts", vidir = "vidir", vipe = "vipe", zrun = "zrun" }
+
+[envs.awscli]
+channels = ["conda-forge"]
+dependencies = { awscli = "*" }
+exposed = { aws = "aws", "aws.cmd" = "aws.cmd", aws_bash_completer = "aws_bash_completer", aws_completer = "aws_completer", aws_zsh_completer = "aws_zsh_completer" }
+
+[envs.minio-client]
+channels = ["conda-forge"]
+dependencies = { minio-client = "*" }
+exposed = { mc = "mc" }
+
+[envs.fd-find]
+channels = ["conda-forge"]
+dependencies = { fd-find = "*" }
+exposed = { fd = "fd" }
+
+[envs.pandoc]
+channels = ["conda-forge"]
+dependencies = { pandoc = "*" }
+exposed = { pandoc-lua = "pandoc-lua", pandoc-server = "pandoc-server", pandoc = "pandoc" }
+
+[envs.uutils-coreutils]
+channels = ["conda-forge"]
+dependencies = { uutils-coreutils = "*" }
+exposed = { timeout = "timeout" }
+
+[envs.lazygit]
+channels = ["conda-forge"]
+dependencies = { lazygit = "*" }
+exposed = { lazygit = "lazygit" }
+
+[envs.carapace]
+channels = ["conda-forge"]
+dependencies = { carapace = "*" }
+exposed = { carapace = "carapace" }
+
+[envs.python]
+channels = ["conda-forge"]
+dependencies = { python = "3.12.*" , pipx = "*", pip = "*", setuptools = "*" }
+exposed = { 2to3 = "2to3", "2to3-3.12" = "2to3-3.12", idle3 = "idle3", "idle3.12" = "idle3.12", pydoc = "pydoc", pydoc3 = "pydoc3", "pydoc3.12" = "pydoc3.12", python = "python", python3 = "python3", python3-config = "python3-config", "python3.1" = "python3.1", "python3.12" = "python3.12", "python3.12-config" = "python3.12-config", pipx = "pipx", pip = "pip", pip3 = "pip3" }
+
+[envs.openjdk]
+channels = ["conda-forge"]
+dependencies = { openjdk = "17.*" }
+exposed = { jar = "jar", jarsigner = "jarsigner", java = "java", javac = "javac", javadoc = "javadoc", javap = "javap", jcmd = "jcmd", jconsole = "jconsole", jdb = "jdb", jdeprscan = "jdeprscan", jdeps = "jdeps", jfr = "jfr", jhsdb = "jhsdb", jimage = "jimage", jinfo = "jinfo", jlink = "jlink", jmap = "jmap", jmod = "jmod", jpackage = "jpackage", jps = "jps", jrunscript = "jrunscript", jshell = "jshell", jstack = "jstack", jstat = "jstat", jstatd = "jstatd", keytool = "keytool", rmiregistry = "rmiregistry", serialver = "serialver" }
+
+[envs.zenith]
+channels = ["conda-forge"]
+dependencies = { zenith = "*" }
+exposed = { zenith = "zenith" }
+
+[envs.zoxide]
+channels = ["conda-forge"]
+dependencies = { zoxide = "*" }
+exposed = { zoxide = "zoxide" }
+
+[envs.yazi]
+channels = ["conda-forge"]
+dependencies = { yazi = "*" }
+exposed = { ya = "ya", yazi = "yazi" }
+
+[envs.bat]
+channels = ["conda-forge"]
+dependencies = { bat = "*" }
+exposed = { bat = "bat" }
+
+[envs.btop]
+channels = ["conda-forge"]
+dependencies = { btop = "*" }
+exposed = { btop = "btop" }
+
+[envs.tssh]
+channels = ["conda-forge"]
+dependencies = { tssh = "*" }
+exposed = { tssh = "tssh" }
+
+[envs.tsshd]
+channels = ["conda-forge"]
+dependencies = { tsshd = "*" }
+exposed = { tsshd = "tsshd" }

@@ -1,0 +1,12 @@
+session_name: cagelab-monitor
+windows:
+  - window_name: monitors
+    layout: main-vertical
+    panes:
+      - shell_command:
+          - btop
+        focus: true
+      - shell_command:
+          - journalctl --user --all -f -u cogmoteGO.service
+      - shell_command:
+          - journalctl --user --all -f -u theConductor.service

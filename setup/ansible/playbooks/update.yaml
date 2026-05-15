@@ -1,0 +1,255 @@
+---
+# For help, check out https://www.redhat.com/en/topics/automation/what-is-an-ansible-playbook
+# Ansible playbook to update CageLab software and related tools
+# This playbook performs the following actions:
+# - Checks if CageLab is currently running an experiment; if so, it skips the update
+# - Ensures necessary directories and permissions are set
+# - Updates system packages and installs required tools
+# - Updates various CageLab-related code repositories
+# - Installs or updates cogmoteGO and pixi tools
+# - Installs or updates eget and mediamtx tools
+# - Ensures OBS Studio is installed via flatpak
+- name: Update CageLab Software
+  hosts: "{{ target | default('all') }}"
+  gather_facts: true
+  gather_timeout: 10
+  ignore_unreachable: false
+
+  vars:
+    cogmotego_install_script_url: "https://raw.githubusercontent.com/cagelab/cogmoteGO/main/install.sh"
+    pixi_install_script_url: "https://pixi.sh/install.sh"
+    repositories: # List of repositories to force update (path and url)
+      - { path: "~/Code/Setup", url: "https://gitee.com/CogPlatform/Setup.git" }
+      - { path: "~/Code/CageLab", url: "https://gitee.com/CogPlatform/CageLab.git" }
+      - { path: "~/Code/Psychtoolbox", url: "https://gitee.com/CogPlatform/Psychtoolbox.git" }
+      - { path: "~/Code/opticka", url: "https://gitee.com/CogPlatform/opticka.git" }
+      - { path: "~/Code/matmoteGO", url: "https://gitee.com/CogPlatform/matmoteGO.git" }
+      - { path: "~/Code/PTBSimia", url: "https://gitee.com/CogPlatform/PTBSimia.git" }
+      - { path: "~/Code/matlab-jzmq", url: "https://gitee.com/CogPlatform/matlab-jzmq.git" }
+      - { path: "~/Code/PacmanTask", url: "https://gitee.com/CogPlatform/PacmanTask.git" }
+      - { path: "~/.dotfiles", url: "https://codeberg.org/iandol/dotfiles.git" }
+
+  tasks:
+
+    - name: Query cogmoteGO API status endpoint
+      ansible.builtin.uri:
+        url: http://localhost:9012/api/status
+        method: GET
+        return_content: true
+      register: status_response
+      failed_when: false
+
+    - name: Set is_running fact
+      ansible.builtin.set_fact:
+        is_running: "{{ status_response.json.is_running if (status_response.json is defined) else false }}"
+
+    - name: End play if cagelab is running an experiment
+      ansible.builtin.meta: end_host
+      when: is_running | bool
+
+    - name: Ensure Code directory exists
+      ansible.builtin.file:
+        path: "~/Code"
+        state: directory
+        mode: '0755'
+
+    - name: Ensure home directory ownership is correct
+      ansible.builtin.file:
+        path: "{{ ansible_facts['user_dir'] }}"
+        owner: "{{ ansible_facts['user_id'] }}"
+        group: "{{ ansible_facts['user_id'] }}"
+        recurse: false # Avoid heavy recursion, just fix the top level and links if needed
+      become: true
+
+    - name: Ensure /usr/local/bin is writable by the user
+      ansible.builtin.file:
+        path: /usr/local/bin
+        state: directory
+        owner: "{{ ansible_facts['user_id'] }}"
+        group: "{{ ansible_facts['user_id'] }}"
+        mode: '0755'
+      become: true
+
+    - name: Update apt cache
+      ansible.builtin.apt:
+        update_cache: true
+      become: true
+      failed_when: false
+
+    - name: Make sure git/curl etc. are installed
+      ansible.builtin.apt:
+        name: [curl, git, tmux, tmuxp, flatpak]
+        state: present
+      become: true
+      failed_when: false
+
+    # ensure all our code repos are force pulled to latest
+    - name: Reset and update repositories
+      ansible.builtin.git:  # noqa: latest[git]
+        repo: "{{ item.url }}"
+        dest: "{{ item.path }}"
+        version: "HEAD"
+        force: true
+        recursive: true
+        accept_hostkey: true
+      environment:
+        GIT_TERMINAL_PROMPT: "0"
+      async: 300
+      poll: 10
+      loop: "{{ repositories }}"
+
+    # run the makelinks script to ensure all symlinks are in place
+    - name: Run makelinks script
+      ansible.builtin.command: "{{ ansible_facts['user_dir'] }}/Code/Setup/makelinks.sh"
+      become: true
+      environment:
+        HOME: "{{ ansible_facts['user_dir'] }}"
+        USER: "{{ ansible_facts['user_id'] }}"
+      register: makelinks_result
+      changed_when: true
+      failed_when: false
+
+    - name: Stop CageLab services
+      ansible.builtin.command: "{{ ansible_facts['user_dir'] }}/bin/cagelab-stop.sh"
+      register: stop_services
+      changed_when: true
+      failed_when: false  # Continue even if stopping services fails (e.g. if not running)
+
+    - name: Download cogmoteGO installer script (best-effort; retries)
+      ansible.builtin.get_url:
+        url: "{{ cogmotego_install_script_url }}"
+        dest: /tmp/cogmotego-install.sh
+        mode: '0755'
+        force: true
+        timeout: 5
+      register: cogmotego_install_script
+      retries: 1
+      delay: 1
+      until: cogmotego_install_script is succeeded
+      failed_when: false
+
+    - name: Update/install cogmoteGO (best-effort)
+      ansible.builtin.command: sh /tmp/cogmotego-install.sh
+      register: update_cogmotego
+      changed_when: update_cogmotego.rc == 0
+      failed_when: false
+      when: cogmotego_install_script is succeeded
+
+    - name: Warn if cogmoteGO installer could not be downloaded
+      ansible.builtin.debug:
+        msg: >-
+          Skipping cogmoteGO update: failed to download installer from {{ cogmotego_install_script_url }}
+          (error={{ cogmotego_install_script.msg | default('unknown') }}).
+      when: cogmotego_install_script is failed
+
+    - name: Check if pixi is installed
+      ansible.builtin.stat:
+        path: "{{ ansible_facts['user_dir'] }}/.pixi/bin/pixi"
+      register: pixi_binary
+
+    - name: Download pixi installer script (best-effort; retries)
+      ansible.builtin.get_url:
+        url: "{{ pixi_install_script_url }}"
+        dest: /tmp/pixi-install.sh
+        mode: '0755'
+        force: true
+        timeout: 5
+      register: pixi_install_script
+      retries: 1
+      delay: 1
+      until: pixi_install_script is succeeded
+      when: not pixi_binary.stat.exists
+      failed_when: false
+
+    - name: Ensure pixi is installed (best-effort)
+      ansible.builtin.command: bash /tmp/pixi-install.sh
+      register: pixi_install
+      changed_when: pixi_install.rc == 0
+      failed_when: false
+      when:
+        - not pixi_binary.stat.exists
+        - pixi_install_script is succeeded
+
+    - name: Warn if pixi installer could not be downloaded
+      ansible.builtin.debug:
+        msg: >-
+          Skipping pixi install: failed to download installer from {{ pixi_install_script_url }}
+          (error={{ pixi_install_script.msg | default('unknown') }}).
+      when:
+        - not pixi_binary.stat.exists
+        - pixi_install_script is failed
+
+    - name: Re-check if pixi is installed
+      ansible.builtin.stat:
+        path: "{{ ansible_facts['user_dir'] }}/.pixi/bin/pixi"
+      register: pixi_binary_after
+      when: not pixi_binary.stat.exists
+
+    - name: Set pixi_installed fact
+      ansible.builtin.set_fact:
+        pixi_installed: "{{ pixi_binary.stat.exists or (pixi_binary_after.stat.exists | default(false)) }}"
+
+    - name: Update pixi
+      ansible.builtin.shell: "pixi self-update && pixi global sync && pixi global -v update"
+      environment:
+        PATH: >-
+          {{ ansible_facts['user_dir'] }}/.pixi/bin:
+          {{ ansible_facts['user_dir'] }}/.local/bin:
+          {{ ansible_facts['user_dir'] }}/bin:
+          {{ ansible_facts['env']['PATH'] }}
+      register: update_pixi
+      changed_when: true
+      failed_when: false
+      when: pixi_installed | default(pixi_binary.stat.exists) | bool
+
+    - name: Check if eget is installed
+      ansible.builtin.stat:
+        path: /usr/local/bin/eget
+      register: eget_binary
+
+    - name: Download eget install script
+      ansible.builtin.get_url:
+        url: https://zyedidia.github.io/eget.sh
+        dest: /tmp/eget.sh
+        mode: '0755'
+      when: not eget_binary.stat.exists
+
+    - name: Install eget
+      ansible.builtin.command: sh /tmp/eget.sh && mv eget /usr/local/bin/eget
+      args:
+        creates: /usr/local/bin/eget
+      when: not eget_binary.stat.exists
+      register: eget_install
+      failed_when: eget_install.rc != 0 and eget_install.rc != 1
+
+    - name: Update/install mediamtx
+      ansible.builtin.command: "eget bluenviron/mediamtx --upgrade-only --to=/usr/local/bin"
+      register: update_mediamtx
+      changed_when: true
+      failed_when: false
+
+    - name: Add flathub repository
+      ansible.builtin.command: "flatpak remote-add --if-not-exists flathub https://flathub.org/repo/flathub.flatpakrepo"
+      become: true
+      register: add_flathub
+      changed_when: "'already exists' not in add_flathub.stderr"
+      failed_when: add_flathub.rc != 0 and 'already exists' not in add_flathub.stderr
+
+    - name: Ensure OBS Studio is installed
+      ansible.builtin.command: "flatpak install -y flathub com.obsproject.Studio"
+      become: true
+      register: install_obs
+      changed_when: "'Installing' in install_obs.stdout"
+      failed_when: false
+
+    - name: Update flatpak packages
+      ansible.builtin.command: "flatpak update -y"
+      become: true
+      register: update_flatpak
+      changed_when: "'Nothing to do.' not in update_flatpak.stdout"
+      failed_when: false  # Ignore errors if flatpak is not installed
+
+    - name: Start CageLab services
+      ansible.builtin.command: "{{ ansible_facts['user_dir'] }}/bin/cagelab-start.sh"
+      register: start_services
+      changed_when: true

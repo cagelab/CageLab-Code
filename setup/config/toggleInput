@@ -1,0 +1,98 @@
+#!/usr/bin/env zsh
+
+# Usage: toggleInput <enable|disable> <partial-device-name>
+# Example: toggleInput enable ILITEK-TP
+
+# Wait for xinput to be available
+MAX_ATTEMPTS=30
+for i in {1..$MAX_ATTEMPTS}; do
+	if xinput list > /dev/null 2>&1; then
+		break
+	fi
+	sleep 0.2
+done
+
+set -euo pipefail
+
+DEFAULT_DEVICE_PATTERNS=(
+	"ILITEK-TP"
+	"Touchpad"
+)
+
+if [[ $# -lt 1 ]]; then
+	echo "Usage: $0 <enable|disable> [device-name-part ...]" >&2
+	echo "       echo 'Device Name' | $0 <enable|disable>" >&2
+	exit 0
+fi
+
+ACTION="$1"
+shift
+
+# Collect device patterns from remaining args, stdin, or fall back to defaults.
+DEVICE_PATTERNS=()
+if [[ $# -gt 0 ]]; then
+	DEVICE_PATTERNS=("$@")
+elif [[ ! -t 0 ]]; then
+	while IFS= read -r line; do
+		line="${line#${line%%[![:space:]]*}}"
+		line="${line%${line##*[![:space:]]}}"
+		[[ -n $line ]] && DEVICE_PATTERNS+=("$line")
+	done
+else
+	DEVICE_PATTERNS=("${DEFAULT_DEVICE_PATTERNS[@]}")
+fi
+
+if [[ ${#DEVICE_PATTERNS[@]} -eq 0 ]]; then
+	echo "No device names provided and default list is empty." >&2
+	exit 1
+fi
+
+# Trim whitespace (leading/trailing)
+ACTION="${ACTION#"${ACTION%%[![:space:]]*}"}"
+ACTION="${ACTION%"${ACTION##*[![:space:]]}"}"
+
+if [[ "$ACTION" != "enable" && "$ACTION" != "disable" ]]; then
+	echo "First argument must be 'enable' or 'disable'" >&2
+	exit 2
+fi
+
+toggle_device() {
+	local pattern="$1"
+	local device_line device_id
+
+	device_line=$(xinput list | grep -i -E "${pattern}[[:space:]]+id=" | head -n1 || true)
+	if [[ -z "$device_line" ]]; then
+		echo "No device matching '$pattern' found." >&2
+		return 1
+	fi
+
+	device_id=$(echo "$device_line" | sed -n 's/.*id=\([0-9]\+\).*/\1/p')
+	if [[ -z "$device_id" ]]; then
+		echo "Could not extract device ID for pattern '$pattern'." >&2
+		return 2
+	fi
+
+	echo "Attempting to $ACTION device '$device_line' (id=$device_id)..."
+	if xinput "$ACTION" "$device_id"; then
+		echo "Device '$device_line' ($device_id) ${ACTION}d successfully."
+		return 0
+	else
+		echo "Failed to $ACTION device '$device_line' ($device_id)." >&2
+		return 3
+	fi
+}
+
+overall_success=1
+for pattern in "${DEVICE_PATTERNS[@]}"; do
+	if toggle_device "$pattern"; then
+		overall_success=0
+	fi
+done
+
+if [[ $overall_success -eq 0 ]]; then
+	xinput list
+else
+	echo "No devices were toggled..." >&2
+fi
+
+exit $overall_success
