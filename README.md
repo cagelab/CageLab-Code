@@ -1,33 +1,34 @@
 # Software Frameworks
 
+![](https://github.com/cagelab/CageLab-Code/blob/main/docs/Images/CageLab-Componenets.jpg)
+
 ## Distributed Architecture
-CageLab is designed to run on a distributed architecture, where each CageLab instance runs on a separate machine. This allows for flexibility in hardware selection and enables the use of multiple machines to run different experiments simultaneously. Each CageLab instance can be controlled remotely, allowing for easy management and monitoring of experiments.
+CageLab is designed to run on a distributed architecture, where each CageLab instance runs on a separate machine. This allows for flexibility in hardware selection and enables the use of multiple machines to run different experiments simultaneously. Each CageLab instance can be controlled remotely, allowing for easy management and monitoring of experiments. We aim to support > 20 experimental kiosks running simultaneously.
 
 Each CageLab runs a middleware called [cogmoteGO](https://github.com/Ccccraz/cogmoteGO), which establishes communication APIs to:
 
-1. Relay command packets from a remote desktop machine to a local running PTB/MATLAB process (could be Octave, Python or any other experiment framework). The messages are JSON encoded and sent using a HTTP POST request and cogmoteGO forwards them over a local ZeroMQ REQ channel to the PTB/MATLAB process.
-2. Broadacast data messages from PTB/MATLAB (or other experiment framework) that can be subscribed to by any number of remote machines.
+1. Relay command packets from one/several remote control desktop machine to a local running PTB/MATLAB process (could be Octave, Python or any other experiment framework). The messages are JSON encoded and sent using a HTTP POST request and cogmoteGO forwards them over a local ZeroMQ REQ channel to the PTB/MATLAB process.
+2. Data broadacast messages sent from PTB/MATLAB (or other experiment frameworks) can be subscribed to by any number of remote machines.
 
-We use the Opticka toolbox for the main experiment control, a high-level wrapper for PsychToolbox. A GUI called `CageLab.mlapp` is provided. The GUI is run on your desktop machine and will send the experiment settings to the CageLab instance. The CageLab device runs a MATLAB service called `theConductor` that receives commands and orchestrates experiments. Each experiment protocol can be run either locally or remotely. We use another app, Puremote, to visualise the subject screen (streamed via mediamtx server), a video feed from the CageLab camera and to plot the broadcast data. 
+We use the Opticka toolbox for the main experiment control, a high-level wrapper for PsychToolbox. A GUI called `CageLab.mlapp` is provided. The GUI is run on your desktop machine and will send the experiment settings to the CageLab instance. The CageLab device runs a MATLAB service (via `systemd`) called `theConductor` that receives commands and orchestrates experiments. Each experiment protocol can be run either locally or remotely. We use another app (cross-platform GUI writen in Tauri), Cogmote, to visualise the both the subject screen and a video feed from the CageLab camera (combined with OBS Studio and streamed via a mediamtx server) and to plot the broadcast data. 
 
 ## Software Components
 
 - **Opticka**: A high-level wrapper for PsychToolbox, used for experiment control.
-- **cogmoteGO**: Middleware for communication between remote desktop and local CageLab instance.
+- **cogmoteGO**: Middleware for communication between remote desktop and local CageLab instance. HTTP APIs to talk and control remote experients, and broadcast ongoing trial data.
 - **theConductor**: A MATLAB service that orchestrates experiments on the CageLab instance. Runs CageLab behavioural tasks.
 - **CageLab.mlapp**: A GUI for configuring and controlling experiments on the CageLab instance, run on a remote computer.
-- **Puremote**: An app for visualising the subject display, video feed from the CageLab camera, and plotting the broadcast data.
+- **Cogmote**: A cross-platform native app for visualising the subject display, video feed streamed from many CageLab systems, and plotting the broadcast data. Can do an IP scan to find new remote experiment systems.
+- **ssh**: `ssh` makes it easy to remote login and manage remote systems. We also use `nomachine` for remote desktop if GUI access is necessary. Both `nomachine` and `ssh` can be tunneled over netbird, a wireguard-based overlay VPN that assigns unique hostnames for each system in an isolated network. So we just `ssh cagelab-005.cloud.lab` which only other netbird peers can access, securing access to experiment systems.
 
 ## Viewing the Opticka experiment log remotely
 
-**theConductor** is run vis `systemd` and logs are therefore readable using `journalctl`. You can read the log remotely using ssh to login to the Cagelab instance and then running `journalctl --user -f -u theConductor`.
+**theConductor** is run vis `systemd` and logs are therefore readable using `journalctl`. You can read the log remotely using ssh to login to the Cagelab instance and then running `journalctl --user -f -u theConductor`. We usually use `tmux` to present a display combing the conductor log, the cogmoteGO log and a btop display.
 
 ## Data pipeline
 
-We use the [International Brain Lab](https://doi.org/10.1038/s41592-022-01742-6) metadata pipeline to manage the data generated by CageLab instances, which opticka supports without any other dependencies. 
+We use the [International Brain Lab](https://doi.org/10.1038/s41592-022-01742-6) metadata pipeline to manage the data generated by CageLab instances, which opticka supports without any other dependencies. Alyx saves session metadata and Minio provides an S3-backed data store for experiment files, pushed to the database / data-store after each session finishes.
 
 
-## Remote access
 
-We use Zerotier VPN, SSH and NoMachine or [moonlight](https://moonlight-stream.org) for remote control of the device.
 
