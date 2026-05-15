@@ -17,7 +17,6 @@
       ansible.builtin.apt:
         name: chrony
         state: present
-        update_cache: true
 
     - name: Configure chrony to use only the master NTP server
       ansible.builtin.copy:

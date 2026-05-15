@@ -68,6 +68,18 @@
         mode: '0755'
       become: true
 
+    - name: Check whether apt cache is older than 60 minutes
+      ansible.builtin.command:
+        argv:
+          - find
+          - /var/cache/apt/pkgcache.bin
+          - -mmin
+          - -60
+      become: true
+      register: apt_cache_freshness
+      changed_when: false
+      failed_when: false
+
     - name: Update apt cache
       ansible.builtin.command:
         argv:
@@ -81,6 +93,7 @@
       timeout: 90
       changed_when: false
       ignore_errors: true
+      when: apt_cache_freshness.stdout == ""
 
     - name: Make sure git/curl etc. are installed
       ansible.builtin.apt:
@@ -90,7 +103,7 @@
       failed_when: false
 
     # ensure all our code repos are force pulled to latest
-    - name: Reset and update repositories
+    - name: Launch repository updates
       ansible.builtin.git:  # noqa: latest[git]
         repo: "{{ item.url }}"
         dest: "{{ item.path }}"
@@ -101,8 +114,20 @@
       environment:
         GIT_TERMINAL_PROMPT: "0"
       async: 300
-      poll: 10
+      poll: 0
       loop: "{{ repositories }}"
+      register: repository_update_jobs
+
+    - name: Wait for repository updates to finish
+      ansible.builtin.async_status:
+        jid: "{{ item.ansible_job_id }}"
+      register: repository_update_status
+      until: repository_update_status.finished
+      retries: 60
+      delay: 5
+      loop: "{{ repository_update_jobs.results }}"
+      loop_control:
+        label: "{{ item.item.path }}"
 
     # run the makelinks script to ensure all symlinks are in place
     - name: Run makelinks script

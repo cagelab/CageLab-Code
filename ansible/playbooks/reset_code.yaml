@@ -18,7 +18,7 @@
       - { path: '~/Code/PacmanTask', url: 'https://gitee.com/CogPlatform/PacmanTask.git' }
 
   tasks:
-    - name: Reset and update repositories
+    - name: Launch repository resets and updates
       ansible.builtin.git: # noqa latest[git]
         repo: "{{ item.url }}"
         dest: "{{ item.path | regex_replace('^~', ansible_facts['user_dir']) }}"
@@ -28,8 +28,27 @@
       environment:
         GIT_TERMINAL_PROMPT: '0'
       async: 300
-      poll: 10
+      poll: 0
       loop: "{{ repositories }}"
+      register: repository_reset_jobs
+
+    - name: Wait for repository resets and updates to finish
+      ansible.builtin.async_status:
+        jid: "{{ item.ansible_job_id }}"
+      register: repository_reset_status
+      until: repository_reset_status.finished
+      retries: 60
+      delay: 5
+      loop: "{{ repository_reset_jobs.results }}"
+      loop_control:
+        label: "{{ item.item.path }}"
+
+    - name: Check for submodules in repositories
+      ansible.builtin.stat:
+        path: "{{ item.path | regex_replace('^~', ansible_facts['user_dir']) }}/.gitmodules"
+      loop: "{{ repositories }}"
+      register: repo_gitmodules
+      changed_when: false
 
     - name: Synchronize submodule URLs in repositories
       ansible.builtin.command:
@@ -39,10 +58,10 @@
           - sync
           - --recursive
       args:
-        chdir: "{{ item.path | regex_replace('^~', ansible_facts['user_dir']) }}"
+        chdir: "{{ item.item.path | regex_replace('^~', ansible_facts['user_dir']) }}"
       environment:
         GIT_TERMINAL_PROMPT: '0'
-      loop: "{{ repositories }}"
+      loop: "{{ repo_gitmodules.results | selectattr('stat.exists') | list }}"
       changed_when: false
 
     - name: Reset tracked files in submodules
@@ -56,10 +75,10 @@
           - reset
           - --hard
       args:
-        chdir: "{{ item.path | regex_replace('^~', ansible_facts['user_dir']) }}"
+        chdir: "{{ item.item.path | regex_replace('^~', ansible_facts['user_dir']) }}"
       environment:
         GIT_TERMINAL_PROMPT: '0'
-      loop: "{{ repositories }}"
+      loop: "{{ repo_gitmodules.results | selectattr('stat.exists') | list }}"
       changed_when: false
 
     - name: Clean untracked files from submodules
@@ -73,13 +92,13 @@
           - clean
           - -fdx
       args:
-        chdir: "{{ item.path | regex_replace('^~', ansible_facts['user_dir']) }}"
+        chdir: "{{ item.item.path | regex_replace('^~', ansible_facts['user_dir']) }}"
       environment:
         GIT_TERMINAL_PROMPT: '0'
-      loop: "{{ repositories }}"
+      loop: "{{ repo_gitmodules.results | selectattr('stat.exists') | list }}"
       changed_when: false
 
-    - name: Initialize and update submodules in repositories
+    - name: Launch submodule initialization and updates
       ansible.builtin.command:
         argv:
           - git
@@ -89,13 +108,25 @@
           - --force
           - --recursive
       args:
-        chdir: "{{ item.path | regex_replace('^~', ansible_facts['user_dir']) }}"
+        chdir: "{{ item.item.path | regex_replace('^~', ansible_facts['user_dir']) }}"
       environment:
         GIT_TERMINAL_PROMPT: '0'
       async: 300
-      poll: 10
-      loop: "{{ repositories }}"
+      poll: 0
+      loop: "{{ repo_gitmodules.results | selectattr('stat.exists') | list }}"
       changed_when: false
+      register: submodule_update_jobs
+
+    - name: Wait for submodule initialization and updates to finish
+      ansible.builtin.async_status:
+        jid: "{{ item.ansible_job_id }}"
+      register: submodule_update_status
+      until: submodule_update_status.finished
+      retries: 60
+      delay: 5
+      loop: "{{ submodule_update_jobs.results }}"
+      loop_control:
+        label: "{{ item.item.item.path }}"
 
     - name: Clean untracked files from repositories
       ansible.builtin.command:

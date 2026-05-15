@@ -6,12 +6,32 @@
 
   tasks:
 
+    - name: Check whether apt cache is older than 60 minutes
+      ansible.builtin.command:
+        argv:
+          - find
+          - /var/cache/apt/pkgcache.bin
+          - -mmin
+          - -60
+      become: true
+      register: apt_cache_freshness
+      changed_when: false
+      failed_when: false
+
     - name: Update apt cache
-      ansible.builtin.apt:
-        update_cache: true
+      ansible.builtin.command:
+        argv:
+          - apt-get
+          - -o
+          - DPkg::Lock::Timeout=60
+          - update
       become: true
       environment:
         DEBIAN_FRONTEND: noninteractive
+      timeout: 90
+      changed_when: false
+      ignore_errors: true
+      when: apt_cache_freshness.stdout == ""
 
     - name: Upgrade all apt packages to latest version
       ansible.builtin.apt:
