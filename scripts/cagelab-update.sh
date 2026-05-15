@@ -7,10 +7,6 @@
 # This must be run on the individual remote system via ssh. Use ansible if you want to
 # automate the same operation amngst all reote systems simultaneously.
 
-# ensure our symlinks are up-to-date, manaully pull Setup before just in case
-git -C ~/Code/Setup reset --hard && git -C ~/Code/Setup clean -fd && git -C ~/Code/Setup pull
-~/Code/Setup/makelinks.sh
-
 # stop all CageLab services
 ~/bin/cagelab-stop.sh
 

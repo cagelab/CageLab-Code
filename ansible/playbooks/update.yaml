@@ -19,15 +19,13 @@
     cogmotego_install_script_url: "https://raw.githubusercontent.com/cagelab/cogmoteGO/main/install.sh"
     pixi_install_script_url: "https://pixi.sh/install.sh"
     repositories: # List of repositories to force update (path and url)
-      - { path: "~/Code/Setup", url: "https://gitee.com/CogPlatform/Setup.git" }
-      - { path: "~/Code/CageLab", url: "https://gitee.com/CogPlatform/CageLab.git" }
+      - { path: "~/Code/CageLab-Code", url: "https://gitee.com/CogPlatform/CageLab-Code.git" }
       - { path: "~/Code/Psychtoolbox", url: "https://gitee.com/CogPlatform/Psychtoolbox.git" }
       - { path: "~/Code/opticka", url: "https://gitee.com/CogPlatform/opticka.git" }
       - { path: "~/Code/matmoteGO", url: "https://gitee.com/CogPlatform/matmoteGO.git" }
       - { path: "~/Code/PTBSimia", url: "https://gitee.com/CogPlatform/PTBSimia.git" }
       - { path: "~/Code/matlab-jzmq", url: "https://gitee.com/CogPlatform/matlab-jzmq.git" }
       - { path: "~/Code/PacmanTask", url: "https://gitee.com/CogPlatform/PacmanTask.git" }
-      - { path: "~/.dotfiles", url: "https://codeberg.org/iandol/dotfiles.git" }
 
   tasks:
 

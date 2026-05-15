@@ -8,7 +8,7 @@
   ignore_unreachable: false
 
   vars:
-    chrony_master_ip: "10.10.47.122"
+    chrony_master_ip: "{{ lookup('ansible.builtin.env', 'chrony_master_ip') | default('10.10.47.122', true) }}"
     chrony_conf_path: /etc/chrony/chrony.conf
 
   tasks:

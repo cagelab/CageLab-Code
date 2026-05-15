@@ -1,5 +1,5 @@
 ---
-# Ansible Hosts Inventory
+# Ansible Hosts Inventory -- edit this file to your host/IPs
 
 cagelab:
   hosts:
@@ -42,6 +42,8 @@ cagelab_ip:
 
 cagelab_songjiang:
   hosts:
+    cagelab-007:
+      ansible_host: cagelab-007.cloud.lab
     cagelab-30:
       ansible_host: cagelab-030.cloud.lab
     cagelab-31:
