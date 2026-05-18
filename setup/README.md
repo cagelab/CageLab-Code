@@ -18,11 +18,15 @@ Critical tools:
 
 Instructions for how to setup secure remote login with netbird, SSH and NoMachine: <https://cogplatform.github.io/Notes/src/RemoteLogin.html>
 
+Run `makelinks.sh` to keep the various config and script files linked so they are in the path and available.
+
 ## For Control PC
 
-MATLAB is needed for CageLab GUI. In general we install the same toolset (netbird, nomachine, pixi), and for management we use `ansible`. As pixi installs `uv` (a Python package manager), then we can quickly install ansible: 
+MATLAB is needed for the CageLab GUI. In general we install the same toolset (`netbird`, `nomachine`, `pixi`), and for management we use `ansible`. Ansible is cool as we can run a single command across the whole fleet of CageLabs in one go. As `pixi` installs `uv` (a fast Python package manager, that can also install tools globally), we can quickly install ansible: 
 
 ```
 uv tool install ansible
-ansible-galaxy collections install ansible.posix
+ansible-galaxy collection install ansible.posix
 ```
+
+

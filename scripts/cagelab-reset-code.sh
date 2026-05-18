@@ -17,6 +17,8 @@ ensureOriginRemote() {
 	fi
 }
 
+rm -rf ~/Code/CageLab # old directory renamed to CageLab-Code, remove if it still exists to avoid confusion
+
 repositories=(
 	~/Code/CageLab-Code https://gitee.com/CogPlatform/CageLab-Code.git
 	~/Code/Psychtoolbox https://gitee.com/CogPlatform/Psychtoolbox.git

@@ -95,7 +95,7 @@ if [ "$PLATFORM" = "Linux" ]; then
 	sudo snap install starship --edge
 
 	# get update i3 desktop manager
-	"$SPATH/config/geti3.sh"
+	"$SPATH/setup/config/geti3.sh"
 
 	# Install snap packages vlc and VS Code
 	[[ ! -f $(which vlc) ]] && sudo snap install vlc
@@ -114,8 +114,8 @@ curl -sS https://raw.githubusercontent.com/Ccccraz/cogmoteGO/main/install.sh | s
 
 #=============================================== Install NoMachine
 [[ ! -f /usr/NX/bin/nxd ]] && 
-	curl -L -o $HOME/Downloads/nomachine.deb https://web9001.nomachine.com/download/9.5/Linux/nomachine_9.5.7_2_amd64.deb &&
-	sudo dpkg -i $HOME/Downloads/nomachine.deb
+	curl -L -o "$HOME/Downloads/nomachine.deb" https://web9001.nomachine.com/download/9.5/Linux/nomachine_9.5.7_2_amd64.deb &&
+	sudo dpkg -i "$HOME/Downloads/nomachine.deb"
 
 #=============================================== Install eget and get mediamtx and sunshine
 [[ ! -f /usr/local/bin/eget ]] && curl https://zyedidia.github.io/eget.sh | sh && chmod +x eget && mv eget /usr/local/bin/eget
@@ -152,6 +152,9 @@ fi
 
 #============================================ Make sure all the symlinks are correct
 "$SPATH/setup/makelinks.sh"
+
+#============================================ Get pixi to update itself and all global packages
+pixi self-update; pixi global sync; pixi global -v update
 
 printf '\n\n--->>> All Done...\n'
 printf '\e[m'
