@@ -1,6 +1,6 @@
 # Software Frameworks
 
-![](https://github.com/cagelab/CageLab-Code/blob/main/docs/Images/CageLab-Componenets.jpg)
+![](https://github.com/cagelab/CageLab-Code/blob/main/docs/Images/CageLab-Componenets-Dark.png)
 
 ## Distributed Architecture
 CageLab is designed to run on a distributed architecture, where each CageLab instance runs on a separate machine. This allows for flexibility in hardware selection and enables the use of multiple machines to run different experiments simultaneously. Each CageLab instance can be controlled remotely, allowing for easy management and monitoring of experiments. We aim to support > 20 experimental kiosks running simultaneously.
