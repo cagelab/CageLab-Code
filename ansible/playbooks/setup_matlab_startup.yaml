@@ -1,7 +1,7 @@
 ---
 # Ansible playbook to set up MATLAB startup file and add necessary paths and preferences
 - name: Setup MATLAB startup file
-  hosts: localhost
+  hosts: all
   connection: local
   gather_facts: false
 
