@@ -1,8 +1,9 @@
 #!/usr/bin/env zsh
 # a script to check whether the local cogmoteGO status API reports the service
-# as running.
+# as running and shows the latest data from the default broadcast stream if it is.
 
 readonly status_url="http://localhost:9012/api/status"
+readonly data_url="http://localhost:9012/api/broadcast/data/default/latest"
 
 if ! command -v jq >/dev/null 2>&1; then
 	echo "CageLab status check failed: jq is required to parse the API response JSON."
@@ -27,6 +28,8 @@ fi
 
 if [[ "$is_running" == "true" ]]; then
 	echo "CageLab service is running."
+	echo "Lets try to print the latest data from the default broadcast stream:"
+	curl -fsS --connect-timeout 3 --max-time 5 --location --request GET "$data_url" 2>/dev/null | jq .
 else
 	echo "CageLab service is not running."
 fi
