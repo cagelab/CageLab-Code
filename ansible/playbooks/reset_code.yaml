@@ -8,6 +8,8 @@
   ignore_unreachable: true
 
   vars:
+    legacy_paths:
+      - '~/Code/CageLab'
     repositories: # List of repositories to reset and update
       - { path: '~/Code/CageLab-Code', url: 'https://gitee.com/CogPlatform/CageLab-Code.git' }
       - { path: '~/Code/Psychtoolbox', url: 'https://gitee.com/CogPlatform/Psychtoolbox.git' }
@@ -18,7 +20,13 @@
       - { path: '~/Code/PacmanTask', url: 'https://gitee.com/CogPlatform/PacmanTask.git' }
 
   tasks:
-    - name: Launch repository resets and updates
+    - name: Remove legacy repository paths
+      ansible.builtin.file:
+        path: "{{ item | regex_replace('^~', ansible_facts['user_dir']) }}"
+        state: absent
+      loop: "{{ legacy_paths }}"
+
+    - name: Ensure repositories are cloned or reset to upstream HEAD
       ansible.builtin.git: # noqa latest[git]
         repo: "{{ item.url }}"
         dest: "{{ item.path | regex_replace('^~', ansible_facts['user_dir']) }}"
