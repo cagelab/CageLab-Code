@@ -44,8 +44,6 @@ cagelab_songjiang:
   hosts:
     cagelab-007:
       ansible_host: cagelab-007.cloud.lab
-    cagelab-30:
-      ansible_host: cagelab-030.cloud.lab
     cagelab-31:
       ansible_host: cagelab-031.cloud.lab
     cagelab-32:
@@ -144,6 +142,10 @@ admin:
       ansible_host: prisys-alyx.cloud.lab
       ansible_user: prisys
       ansible_ssh_private_key_file: ~/.ssh/prisys
+    cagelab-30:
+      ansible_host: cagelab-030.cloud.lab
+      ansible_user: cagelab
+      ansible_ssh_private_key_file: ~/.ssh/cagelab
 
 admin_ip:
   hosts:
