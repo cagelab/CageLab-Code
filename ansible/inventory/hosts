@@ -15,8 +15,6 @@ cagelab:
       ansible_host: cagelab-004.cloud.lab
     cagelab-005:
       ansible_host: cagelab-005.cloud.lab
-    cagelab-006:
-      ansible_host: cagelab-006.cloud.lab
   vars:
     ansible_user: cagelab
     ansible_ssh_private_key_file: ~/.ssh/cagelab
@@ -33,15 +31,14 @@ cagelab_ip:
       ansible_host: 192.168.3.14
     cagelab-005i:
       ansible_host: 192.168.3.15
-    cagelab-006i:
-      ansible_host: 192.168.3.16
   vars:
     ansible_user: cagelab
     ansible_ssh_private_key_file: ~/.ssh/cagelab
 
-
 cagelab_songjiang:
   hosts:
+    cagelab-006:
+      ansible_host: cagelab-006.cloud.lab
     cagelab-007:
       ansible_host: cagelab-007.cloud.lab
     cagelab-31:
