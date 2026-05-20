@@ -49,6 +49,20 @@ cagelab_songjiang:
     ansible_user: cagelab
     ansible_ssh_private_key_file: ~/.ssh/cagelab
 
+cagelab_songjiang_ip:
+  hosts:
+    cagelab-006i:
+      ansible_host: 10.102.22.33
+    cagelab-007i:
+      ansible_host: 10.102.22.7
+    cagelab-031i:
+      ansible_host: 10.102.22.31
+    cagelab-032i:
+      ansible_host: 10.102.22.32
+  vars:
+    ansible_user: cagelab
+    ansible_ssh_private_key_file: ~/.ssh/cagelab
+
 cagelab_pacman:
   hosts:
     pacman-001:

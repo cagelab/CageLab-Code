@@ -1,6 +1,6 @@
 # Shared configuration for all CAGELAB systems
 # symlink this to ~/.ssh/config
-# lssh can also read this file
+# tssh can also read this file
 ###================================= ADMIN
 Host cog5
 	HostName cog5.cloud.lab
