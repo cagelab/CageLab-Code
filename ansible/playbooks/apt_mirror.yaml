@@ -1,0 +1,17 @@
+---
+# Ansible playbook to install the CageLab Ubuntu apt mirror configuration.
+# Used to keep the apt source consistent and speed up package installation and updates for CageLab users in China.
+# change ubuntu.sources to match your local mirror if you are outside of China or want to use a different mirror.
+- name: Install Ubuntu Apt Mirror Configuration
+  hosts: "{{ target | default('all') }}"
+  gather_facts: true
+  become: true
+
+  tasks:
+    - name: Copy ubuntu.sources to remote apt sources directory
+      ansible.builtin.copy:
+        src: ../../setup/config/ubuntu.sources
+        dest: /etc/apt/sources.list.d/ubuntu.sources
+        owner: root
+        group: root
+        mode: '0644'
