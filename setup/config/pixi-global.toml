@@ -75,11 +75,6 @@ channels = ["conda-forge"]
 dependencies = { moreutils = "*" }
 exposed = { chronic = "chronic", combine = "combine", errno = "errno", ifdata = "ifdata", ifne = "ifne", isutf8 = "isutf8", lckdo = "lckdo", mispipe = "mispipe", parallel = "parallel", pee = "pee", sponge = "sponge", ts = "ts", vidir = "vidir", vipe = "vipe", zrun = "zrun" }
 
-[envs.awscli]
-channels = ["conda-forge"]
-dependencies = { awscli = "*" }
-exposed = { aws = "aws", "aws.cmd" = "aws.cmd", aws_bash_completer = "aws_bash_completer", aws_completer = "aws_completer", aws_zsh_completer = "aws_zsh_completer" }
-
 [envs.minio-client]
 channels = ["conda-forge"]
 dependencies = { minio-client = "*" }
@@ -117,7 +112,7 @@ exposed = { 2to3 = "2to3", "2to3-3.12" = "2to3-3.12", idle3 = "idle3", "idle3.12
 
 [envs.openjdk]
 channels = ["conda-forge"]
-dependencies = { openjdk = "17.*" }
+dependencies = { openjdk = "21.*" }
 exposed = { jar = "jar", jarsigner = "jarsigner", java = "java", javac = "javac", javadoc = "javadoc", javap = "javap", jcmd = "jcmd", jconsole = "jconsole", jdb = "jdb", jdeprscan = "jdeprscan", jdeps = "jdeps", jfr = "jfr", jhsdb = "jhsdb", jimage = "jimage", jinfo = "jinfo", jlink = "jlink", jmap = "jmap", jmod = "jmod", jpackage = "jpackage", jps = "jps", jrunscript = "jrunscript", jshell = "jshell", jstack = "jstack", jstat = "jstat", jstatd = "jstatd", keytool = "keytool", rmiregistry = "rmiregistry", serialver = "serialver" }
 
 [envs.zenith]
@@ -154,3 +149,13 @@ exposed = { tssh = "tssh" }
 channels = ["conda-forge"]
 dependencies = { tsshd = "*" }
 exposed = { tsshd = "tsshd" }
+
+[envs.tmux]
+channels = ["conda-forge"]
+dependencies = { tmux = "*" }
+exposed = { tmux = "tmux" }
+
+[envs.tmuxp]
+channels = ["conda-forge"]
+dependencies = { tmuxp = "*" }
+exposed = { tmuxp = "tmuxp" }
