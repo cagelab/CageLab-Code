@@ -6,6 +6,7 @@ function [session, success] = initAlyxSession(alyx, session, runStruct)
 %   Inputs:
 %       alyx    - alyxManager object for interacting with the Alyx database.
 %       session - Struct containing session metadata (subject, lab, etc.).
+%		runStruct - (Optional) Struct containing tL and loopN information for logging.
 %
 %   Outputs:
 %       session - Updated session struct with initialization status and URL.
@@ -43,16 +44,17 @@ function [session, success] = initAlyxSession(alyx, session, runStruct)
 		session.sessionID = id{end};
 		t = sprintf('≣≣≣≣⊱ Alyx File Path: %s -- Alyx URL: %s...', alyx.paths.ALFPath, session.sessionURL);
 		if ~isempty(runStruct) && isfield(runStruct,'tL') && isa(runStruct.tL,'timeLogger')
-			try addMessage(runStruct.tL, runStruct.loopN, GetSecs, [], t, "getsecs", "Metadata"); end
+			try addMessage(runStruct.tL, runStruct.loopN, [], [], t, "", "Metadata"); end
+			try addMessage(runStruct.tL, runStruct.loopN, [], [], url, "", "URL"); end
 		end
 		disp(t);
 	else
 		session.sessionURL = '';
 		session.initialised = false;
 		success = false;
-		t = sprintf('≣≣≣≣⊱ Failed to initialize Alyx session %s for subject %s in lab %s', alyx.paths.ALFPath, session.subjectName, session.labName);
+		t = sprintf('≣≣≣≣⊱ !!! Failed to initialize Alyx session %s for subject %s in lab %s', alyx.paths.ALFPath, session.subjectName, session.labName);
 		if ~isempty(runStruct) && isfield(runStruct,'tL') && isa(runStruct.tL,'timeLogger')
-			try addMessage(runStruct.tL, runStruct.loopN, GetSecs, [], t, "getsecs", "Metadata"); end
+			try addMessage(runStruct.tL, runStruct.loopN, [], [], t, "", "Metadata"); end
 		end
 		warning(t);
 	end

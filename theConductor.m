@@ -150,6 +150,7 @@ classdef theConductor < optickaCore
 			request = matlab.net.http.RequestMessage(matlab.net.http.RequestMethod.POST, me.headers, msgBody);
 
 			% just in case a previous run didn't clean up:
+			fprintf('===> theConductor: Resetting proxy (warning is normal if no previous proxy exists)...\n');
 			resetProxy(me);
 
 			% send request
@@ -412,7 +413,7 @@ classdef theConductor < optickaCore
 		% ==================================================================
 			success = closeProxy(me);
 			if ~success
-				warning('theConductor:resetProxy','Could not close proxy, trying with curl');
+				disp('theConductor:resetProxy -- There was no proxy to close, will try with curl');
 				system('/usr/bin/curl --location --request DELETE "http://127.0.0.1:9012/api/cmds/proxies"');
 				if isCogmoteGO(me) == false
 					warning('theConductor:resetProxy','cogmoteGO not running, trying to restart service');

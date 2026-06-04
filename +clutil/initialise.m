@@ -300,18 +300,17 @@ function [sM, aM, rM, tM, r, dt, in] = initialise(in, bgName, prefix)
 		end
 	end
 
-	
-	%% task status set to true for cogmoteGO
+	%% ================================ task status set to true for cogmoteGO
 	% Update CogmoteGO dashboards so operators know the task is live before the first trial.
 	if in.remote
 		try
 			currentStatus = r.status.updateStatusToRunning();
-			disp('===>>> CogmoteGO Task Status: ');disp(currentStatus.Body.Data);
+			disp('===>>> CogmoteGO Task Status: '); disp(currentStatus.Body.Data);
 		end
 	end
 
-	%% broadcast the initial status to cogmoteGO
-	% Push an initial status packet so remote monitors have the starting state.
+	%% ================================ broadcast the initial status to cogmoteGO
+	% Push an initial data trial packet so remote monitors have the starting state.
 	clutil.broadcastTrial(in, r, dt, true);
 
 	fprintf('===>>> CageLab Task Initialisation Time: %f seconds\n', toc(tt));
