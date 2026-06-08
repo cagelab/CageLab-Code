@@ -140,6 +140,12 @@ admin:
     cog5:
       ansible_host: cog5.cloud.lab
       ansible_user: cog5
+      ansible_port: 2222
+      ansible_ssh_private_key_file: ~/.ssh/id_rsa
+    cog-WS1:
+      ansible_host: cog-WS1.cloud.lab
+      ansible_user: cog
+      ansible_port: 2222
       ansible_ssh_private_key_file: ~/.ssh/id_rsa
     cog21:
       ansible_host: cog21.cloud.lab

@@ -2,6 +2,14 @@
 # symlink this to ~/.ssh/config
 # tssh can also read this file
 ###================================= ADMIN
+Host cog-WS1
+	HostName cog-WS1.cloud.lab
+	Port 2222
+	User cog
+	IdentityFile ~/.ssh/id_rsa
+	IdentitiesOnly yes
+	#!! GroupLabels admin
+	#!! EnableOSC52 yes
 Host cog5
 	HostName cog5.cloud.lab
 	Port 2222

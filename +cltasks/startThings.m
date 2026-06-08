@@ -73,8 +73,9 @@ function startThings(in)
 
 		%% ============================ training parameters
 		r.totalPhases = 20;
-		dAlpha = linspace(0.1,1,r.totalPhases);
-		pAlpha = linspace(0.5,0,r.totalPhases);
+		dAlpha = linspace(0.15,1,r.totalPhases);
+		pAlpha = linspace(0.25,0,floor(r.totalPhases/2));
+		pAlpha(end+1:r.totalPhases) = 0;
 		for ii = 1:20
 			phases(ii).dAlpha = dAlpha(ii);
 			phases(ii).pAlpha = pAlpha(ii);
@@ -125,7 +126,7 @@ function startThings(in)
 
 			switch in.taskType
 				case 'training 1'
-					if r.phase>10;in.doNegation = false;tM.window.doNegation = false;end
+					in.doNegation = false;tM.window.doNegation = false;
 					samples{1}.alphaOut = phases(r.phase).pAlpha; % pedestal
 					[choice, ooo, others] = randomTriplet();
 					cidx = choice + 1;
@@ -148,6 +149,7 @@ function startThings(in)
 					samples{3}.angleOut = randi(360);
 					samples{4}.angleOut = randi(360);
 					showSet(samples, 1); % show all stimuli with pedestal
+					update(samples);
 				case 'training 2'
 					samples{1}.alphaOut = phases(r.phase).pAlpha; % pedestal
 					[choice, ooo, others] = randomTriplet();
