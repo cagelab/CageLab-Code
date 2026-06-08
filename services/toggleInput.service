@@ -1,5 +1,5 @@
 # User service for disabling an xinput device at startup
-# https://github.com/CogPlatform/Setup/blob/main/config/toggleInput
+# https://github.com/cagelab/CageLab-Code/blob/main/scripts/toggleInput
 #
 # Place this file in $HOME/.config/systemd/user/toggleInput.service
 # and the script in /usr/local/bin/toggleInput

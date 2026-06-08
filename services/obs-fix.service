@@ -1,3 +1,8 @@
+# This restarts mediamtx and OBS as they fail to
+# talk to each other after initial boot, this just 
+# restarts them after 90s and they seem to then work 
+# together.
+#
 # Place this file in ~/.config/systemd/user/
 # systemctl --user daemon-reload
 # systemctl --user enable obs-fix.service
@@ -8,7 +13,7 @@ After=obs.service
 
 [Service]
 ExecStartPre=/usr/bin/sleep 90s
-ExecStart=%h/Code/CageLab/software/scripts/cagelab-reset-OBS.sh
+ExecStart=%h/Code/CageLab-Code/scripts/cagelab-reset-OBS.sh
 
 [Install]
 # activate this unit alongside graphical-session.target
