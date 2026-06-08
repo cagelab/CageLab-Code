@@ -69,10 +69,8 @@ if [[ $controller == true ]]; then
 fi
 
 # Link pixi-global.toml
-if [[ ! -f "$HOME/.pixi/manifests/pixi-global.toml" ]]; then
-	mkdir -p "$HOME/.pixi/manifests"
-	ln -svf "$SPATH/setup/config/pixi-global.toml" "$HOME/.pixi/manifests/"
-fi
+mkdir -p "$HOME/.pixi/manifests"
+ln -svf "$SPATH/setup/config/pixi-global.toml" "$HOME/.pixi/manifests/"
 
 # few others
 sudo cp "$SPATH/setup/config/10-libuvc.rules" "/etc/udev/rules.d/"

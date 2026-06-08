@@ -10,7 +10,7 @@
   tasks:
     - name: Copy ubuntu.sources to remote apt sources directory
       ansible.builtin.copy:
-        src: ../../setup/config/ubuntu.sources
+        src: "{{ lookup('ansible.builtin.pipe', 'readlink -f ' ~ ((playbook_dir ~ '/../../setup/config/ubuntu.sources') | quote)) }}"
         dest: /etc/apt/sources.list.d/ubuntu.sources
         owner: root
         group: root
