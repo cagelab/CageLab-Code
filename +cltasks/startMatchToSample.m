@@ -212,11 +212,7 @@ function startMatchToSample(in)
 			% log the trial's target and distractor configuration
 			r.summary = sprintf("Fixation Choice: %i ", targets.fixationChoice);
 			r.store.fixationChoice = targets.fixationChoice;
-			try r.sampleNames = [string(sample.filePath) string(target.filePath) string(distractor1.filePath) string(distractor2.filePath) string(distractor3.filePath) string(distractor4.filePath)]; end
-			t = sprintf('\n\n===Choice: %s | %s', mat2str(r.summary), mat2str(r.sampleNames));
-			addMessage(r.tL, [], [], [], t, [], "Experimental-note"); disp(t);
-
-
+			
 			if contains(in.taskType, 'training')
 				targets.stimulusSets{1} = [1 2 3];
 				if matches(in.task,"dnts")
@@ -250,6 +246,12 @@ function startMatchToSample(in)
 			update(targets);
 			update(delayDistractors);
 
+			try r.sampleNames = [string(sample.currentFile) string(target.currentFile) ...
+					string(distractor1.currentFile) string(distractor2.currentFile) ...
+					string(distractor3.currentFile) string(distractor4.currentFile)]; end
+			t = sprintf('\n\n===Choice: %s | %s', mat2str(r.summary), mat2str(r.sampleNames));
+			addMessage(r.tL, [], [], [], t, [], "Experimental-note"); disp(t);
+
 			%% ============================== Wait for touchscreen release
 			r = clutil.ensureTouchRelease(r, tM, sM, false);
 
@@ -278,7 +280,7 @@ function startMatchToSample(in)
 			%% ============================== Log the trial info
 			t = sprintf('===>>> %s', mat2str(r.summary));
 			addMessage(r.tL, [], [], [], t, [], "Experimental-note");
-			addMessage(r.tL, [], [], [], num2str(r.delayTime), [], "Sensory-event, Delay");
+			addMessage(r.tL, [], [], [], num2str(r.sampleTime), [], "Sensory-event, Time-value");
 			addMessage(r.tL, [], [], [], num2str(r.delayTime), [], "Sensory-event, Delay");
 			disp(t);
 
@@ -370,7 +372,7 @@ function startMatchToSample(in)
 			
 			if ~isempty(r.sbg); draw(r.sbg); else; drawBackground(sM, in.bg); end
 			r.vblFinal = flip(sM);
-			addMessage(r.tL, r.loopN, r.vblFinal, [], "End Trial " + r.trialN, "getsecs", "Time-block");
+			addMessage(r.tL, r.loopN, r.vblFinal, [], "End Trial " + r.trialN, "getsecs", "Time-value");
 			addMessage(r.tL, r.loopN, r.vblInit, r.vblFinal, "Trial " + r.trialN, "getsecs", "Time-block");
 			r.store.vblFinal = r.vblFinal;
 			r.value = hld;
