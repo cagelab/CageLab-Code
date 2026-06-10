@@ -129,7 +129,7 @@ function startMatchToSample(in)
 			sep = in.objectSep;
 			N = in.distractorN;
 			Y = in.distractorY;
-			switch N % number of destractors
+			switch N % number of distractors
 				case 0
 					[~,idx] = Shuffle([1 2]);
 					x = [-(sep/2) (sep/2)];
@@ -137,6 +137,7 @@ function startMatchToSample(in)
 					xy = xy(:,idx);
 					target.updateXY(xy(1,1), xy(2,1), true);
 					distractor1.updateXY(xy(1,2), xy(2,2), true);
+					targets.stimulusSets{1} = 1:3;
 					if matches(in.task,"dnts")
 						targets.fixationChoice = 4;
 						targets.stimulusSets{4} = 4;
@@ -151,6 +152,7 @@ function startMatchToSample(in)
 					xy = xy(:,idx);
 					target.updateXY(xy(1,1), xy(2,1), true);
 					distractor1.updateXY(xy(1,2), xy(2,2), true);
+					targets.stimulusSets{1} = 1:4;
 					targets.stimulusSets{4} = [3 4];
 					if matches(in.task,"dnts")
 						targets.fixationChoice = 4;
@@ -165,6 +167,7 @@ function startMatchToSample(in)
 					target.updateXY(xy(1,1), xy(2,1), true);
 					distractor1.updateXY(xy(1,2), xy(2,2), true);
 					distractor2.updateXY(xy(1,3), xy(2,3), true);
+					targets.stimulusSets{1} = 1:5;
 					targets.stimulusSets{4} = [3 4 5];
 					if matches(in.task,"dnts")
 						targets.fixationChoice = [4 5];
@@ -180,6 +183,7 @@ function startMatchToSample(in)
 					distractor1.updateXY(xy(1,2), xy(2,2), true);
 					distractor2.updateXY(xy(1,3), xy(2,3), true);
 					distractor3.updateXY(xy(1,4), xy(2,4), true);
+					targets.stimulusSets{1} = 1:6;
 					targets.stimulusSets{4} = [3 4 5 6];
 					if matches(in.task,"dnts")
 						targets.fixationChoice = [4 5 6];
@@ -196,6 +200,7 @@ function startMatchToSample(in)
 					distractor2.updateXY(xy(1,3), xy(2,3), true);
 					distractor3.updateXY(xy(1,4), xy(2,4), true);
 					distractor4.updateXY(xy(1,5), xy(2,5), true);
+					targets.stimulusSets{1} = 1:7;
 					targets.stimulusSets{4} = [3 4 5 6 7];
 					if matches(in.task,"dnts")
 						targets.fixationChoice = [4 5 6 7];
@@ -203,12 +208,14 @@ function startMatchToSample(in)
 						targets.fixationChoice = 3;
 					end
 			end
+
+			% log the trial's target and distractor configuration
 			r.summary = sprintf("Fixation Choice: %i ", targets.fixationChoice);
 			r.store.fixationChoice = targets.fixationChoice;
 			try r.sampleNames = [string(sample.filePath) string(target.filePath) string(distractor1.filePath) string(distractor2.filePath) string(distractor3.filePath) string(distractor4.filePath)]; end
 			t = sprintf('\n\n===Choice: %s | %s', mat2str(r.summary), mat2str(r.sampleNames));
-			addMessage(r.tL, [], GetSecs, [], t, "getsecs", "Experimental-note");
-			disp(t);
+			addMessage(r.tL, [], [], [], t, [], "Experimental-note"); disp(t);
+
 
 			if contains(in.taskType, 'training')
 				targets.stimulusSets{1} = [1 2 3];
@@ -243,7 +250,7 @@ function startMatchToSample(in)
 			update(targets);
 			update(delayDistractors);
 
-			%% ============================== Wait for release
+			%% ============================== Wait for touchscreen release
 			r = clutil.ensureTouchRelease(r, tM, sM, false);
 
 			%% =============================== timers for sample and delay
@@ -270,7 +277,9 @@ function startMatchToSample(in)
 
 			%% ============================== Log the trial info
 			t = sprintf('===>>> %s', mat2str(r.summary));
-			addMessage(r.tL, [], GetSecs,[], t, "getsecs", "Experimental-note");
+			addMessage(r.tL, [], [], [], t, [], "Experimental-note");
+			addMessage(r.tL, [], [], [], num2str(r.delayTime), [], "Sensory-event, Delay");
+			addMessage(r.tL, [], [], [], num2str(r.delayTime), [], "Sensory-event, Delay");
 			disp(t);
 
 			%% ============================== Initiate a trial with a touch target
