@@ -33,6 +33,9 @@ function startMatchToSample(in)
 		prefix = 'DNTS';
 	end
 
+	fractalsFolders = ["A" "B" "C" "D" "E" "F" "G" "H" "I" "J" "K" "L"];
+	quaddlesFolders = ["A" "B" "C" "D" "E" "F" "G" "H"];
+
 	try
 		%% ============================subfunction for shared initialisation
 		%[sM, aM, rM, tM, r, dt, in] = initialise(in, bgName, prefix)
@@ -41,58 +44,40 @@ function startMatchToSample(in)
 		%% ============================task specific figures
 		switch lower(in.object)
 			case 'fractals'
-				pfix = ["A" "B" "C" "D" "E" "F" "G" "H" "I" "J" "K" "L"];
-				pfix1 = pfix(randi(length(pfix)));
-				pfix = setxor(pfix,pfix1);
-				pfix2 = pfix(randi(length(pfix)));
-				pfix = setxor(pfix,pfix2);
-				pfix3 = pfix(randi(length(pfix)));
-				pfix = setxor(pfix,pfix3);
-				pfix4 = pfix(randi(length(pfix)));
-				pfix = setxor(pfix3,pfix4);
-				pfix5 = pfix(randi(length(pfix)));
+				[pfix1, pfix2, pfix3, pfix4, pfix5] = getPrefixes(fractalsFolders);
 			case 'quaddles'
-				pfix = ["A" "B" "C" "D" "E" "F" "G" "H"];
-				pfix1 = pfix(randi(length(pfix)));
-				pfix = setxor(pfix,pfix1);
-				pfix2 = pfix(randi(length(pfix)));
-				pfix = setxor(pfix,pfix2);
-				pfix3 = pfix(randi(length(pfix)));
-				pfix = setxor(pfix,pfix3);
-				pfix4 = pfix(randi(length(pfix)));
-				pfix = setxor(pfix3,pfix4);
-				pfix5 = pfix(randi(length(pfix)));
+				[pfix1, pfix2, pfix3, pfix4, pfix5] = getPrefixes(quaddlesFolders);
 			case 'flowers'
 				[pfix1, pfix2, pfix3, pfix4, pfix5] = deal("");
 		end
-		pedestal = discStimulus('size', in.objectSize + 1,'colour',[0.5 1 1],'alpha',0.3,'yPosition',in.sampleY);
-		sample = imageStimulus('size', in.objectSize, 'randomiseSelection', false,...
-			'filePath', string(in.folder) + filesep + in.object + filesep + pfix1,'yPosition',in.sampleY);
-		target = clone(sample);
-		target.yPosition = in.distractorY;
-		distractor1 = clone(target);
-		distractor1.filePath = string(in.folder) + filesep + in.object + filesep + pfix2;
-		distractor2 = clone(target);
-		distractor2.filePath = string(in.folder) + filesep + in.object + filesep + pfix3;
-		distractor3 = clone(target);
-		distractor3.filePath = string(in.folder) + filesep + in.object + filesep + pfix4;
-		distractor4 = clone(target);
-		distractor4.filePath = string(in.folder) + filesep + in.object + filesep + pfix5;
-		targets = metaStimulus('stimuli',{pedestal, sample, target, distractor1, distractor2, distractor3, distractor4});
-		targets.fixationChoice = 3;
-		targets.stimulusSets{1} = 1:7; % all stimuli for mts
-		targets.stimulusSets{2} = 1:2; % pedestal + sample
-		targets.stimulusSets{3} = 3; %target 
-		targets.stimulusSets{4} = 3:7; % all targets + distractors
+		pedestal 					= discStimulus('size', in.objectSize + 1,'colour',[0.5 1 1],'alpha',0.3,'yPosition',in.sampleY);
+		sample 						= imageStimulus('size', in.objectSize, 'randomiseSelection', false,...
+										'filePath', fullfile(in.folder, in.object, pfix1),'yPosition',in.sampleY);
+		target 						= clone(sample);
+		target.yPosition 			= in.distractorY;
+		distractor1 				= clone(target);
+		distractor1.filePath 		= fullfile(in.folder, in.object, pfix2);
+		distractor2 				= clone(target);
+		distractor2.filePath 		= fullfile(in.folder, in.object, pfix3);
+		distractor3 				= clone(target);
+		distractor3.filePath 		= fullfile(in.folder, in.object, pfix4);
+		distractor4 				= clone(target);
+		distractor4.filePath 		= fullfile(in.folder, in.object, pfix5);
+		targets 					= metaStimulus('stimuli',{pedestal, sample, target, distractor1, distractor2, distractor3, distractor4});
+		targets.fixationChoice 		= 3;
+		targets.stimulusSets{1} 	= 1:7; % all stimuli for mts
+		targets.stimulusSets{2} 	= 1:2; % pedestal + sample
+		targets.stimulusSets{3} 	= 3; %target 
+		targets.stimulusSets{4} 	= 3:7; % all targets + distractors
 
 		% distractors to optionally show in the delay period
-		distractor5 = clone(distractor2);
-		distractor5.xPosition = -in.objectSep;
-		distractor6 = clone(distractor3);
-		distractor6.xPosition = 0;
-		distractor7 = clone(distractor4);
-		distractor7.xPosition = +in.objectSep;
-		delayDistractors = metaStimulus('stimuli',{distractor5, distractor6, distractor7});
+		distractor5 				= clone(distractor2);
+		distractor5.xPosition 		= -in.objectSep;
+		distractor6 				= clone(distractor3);
+		distractor6.xPosition 		= 0;
+		distractor7 				= clone(distractor4);
+		distractor7.xPosition 		= +in.objectSep;
+		delayDistractors 			= metaStimulus('stimuli',{distractor5, distractor6, distractor7});
 		delayDistractors.edit(1:3,'alpha',0.75);
 		delayDistractors.edit(1:3,'yPosition',in.sampleY);
 
@@ -122,6 +107,7 @@ function startMatchToSample(in)
 			fail = false; hld = false;
 
 			%% ============================== trial setup
+
 			pedestal.xPositionOut = 0;
 			pedestal.yPositionOut = in.sampleY;
 			sample.xPositionOut = 0;
@@ -129,6 +115,23 @@ function startMatchToSample(in)
 			sep = in.objectSep;
 			N = in.distractorN;
 			Y = in.distractorY;
+
+			%% ============================== randomize new folders
+			switch lower(in.object)
+				case 'fractals'
+					[pfix1, pfix2, pfix3, pfix4, pfix5] = getPrefixes(fractalsFolders);
+				case 'quaddles'
+					[pfix1, pfix2, pfix3, pfix4, pfix5] = getPrefixes(quaddlesFolders);
+				case 'flowers'
+					[pfix1, pfix2, pfix3, pfix4, pfix5] = deal("");
+			end
+			sample.filePath 		= fullfile(in.folder, in.object, pfix1);
+			target.filePath 		= fullfile(in.folder, in.object, pfix1);
+			distractor1.filePath 	= fullfile(in.folder, in.object, pfix2);
+			distractor2.filePath 	= fullfile(in.folder, in.object, pfix3);
+			distractor3.filePath 	= fullfile(in.folder, in.object, pfix4);
+			distractor4.filePath 	= fullfile(in.folder, in.object, pfix5);
+
 			switch N % number of distractors
 				case 0
 					[~,idx] = Shuffle([1 2]);
@@ -422,4 +425,15 @@ function startMatchToSample(in)
 		rethrow(ME)
 	end
 
-end
+	function [p, leftover] = pickAndRemove(in)
+		p = in(randi(length(in)));
+		leftover = setxor(in,p);
+	end
+
+	function [p1 p2 p3 p4 p5] = getPrefixes(in)
+		[p1, in] = pickAndRemove(in);
+		[p2, in] = pickAndRemove(in);
+		[p3, in] = pickAndRemove(in);
+		[p4, in] = pickAndRemove(in);
+		[p5, in] = pickAndRemove(in);
+	end
