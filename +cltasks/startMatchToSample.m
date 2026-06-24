@@ -102,7 +102,7 @@ function startMatchToSample(in)
 		while r.keepRunning
 
 			%% ============================== initialise trial variables
-			r = clutil.initTrialVariables(r); % loopN + 1 here
+			r = clutil.initTrialVariables(r); % ------------- r.loopN + 1 here
 			txt = '';
 			fail = false; hld = false;
 
@@ -242,7 +242,7 @@ function startMatchToSample(in)
 				while any(rn == rr)
 					rn = randi(targets{jj}.nImages);
 				end
-				setP(target{jj},'selection', rn)
+				setP(targets{jj},'selection', rn)
 				rr = [rr rn];
 			end
 

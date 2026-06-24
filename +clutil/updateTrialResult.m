@@ -215,9 +215,20 @@ function [dt, r] = updateTrialResult(in, dt, r, sM, tM, rM, aM)
 		end
 	end
 
+	%% ================================ logic for ending the task
+	if isfield(in, 'totalOnlyCorrect') && in.totalOnlyCorrect==true
+		N = sum(dt.data.result(dt.data.result==1));
+	else
+		N = r.trialN;
+	end
+	if N >= in.totalTrials 
+		r.keepRunning = false;
+		t = sprintf('===> End task criteria met at trial %d: %.1f%% correct', N, r.correctRate*100);
+		addMessage(r.tL, r.loopN, GetSecs, [], t, "getsecs", "Experimental-note");
+		disp(t);
+	end
+
 	%% ================================ finalise this trial
-	if dt.data.rewards > in.totalRewards; r.keepRunning = false; end
-	if r.keepRunning == false; return; end
 	drawBackground(sM,in.bg)
 	if ~isempty(sbg); draw(sbg); end
 	flip(sM);
@@ -252,7 +263,7 @@ function [dt, r] = updateTrialResult(in, dt, r, sM, tM, rM, aM)
 	%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 	function [recent,overall] = getCorrectRate()
 	%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-		overall = length(find(dt.data.result == 1)) / length(dt.data.result);
+		overall = sum(dt.data.value(dt.data.value==1)) / length(dt.data.result);
 		if length(dt.data.result) >= in.stepForward
 			recent = dt.data.result(end - (in.stepForward-1):end);
 			recent = length(find(recent == 1)) / length(recent);
