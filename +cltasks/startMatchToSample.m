@@ -234,15 +234,15 @@ function startMatchToSample(in)
 			end
 
 			rs = randi(sample.nImages); r.stimulus = rs;
-			sample.selectionOut = rs;
-			target.selectionOut = rs;
+			setP(sample,'selection', rs);
+			setP(target,'selection', rs);
 			rr = rs;
 			for jj = 4:7
 				rn = randi(targets{jj}.nImages);
 				while any(rn == rr)
 					rn = randi(targets{jj}.nImages);
 				end
-				targets{jj}.selectionOut = rn;
+				setP(target{jj},'selection', rn)
 				rr = [rr rn];
 			end
 
@@ -437,3 +437,4 @@ function startMatchToSample(in)
 		[p4, in] = pickAndRemove(in);
 		[p5, in] = pickAndRemove(in);
 	end
+end

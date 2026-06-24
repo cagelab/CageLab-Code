@@ -2,6 +2,14 @@
 # symlink this to ~/.ssh/config
 # tssh can also read this file
 ###================================= ADMIN
+Host seneca
+	HostName fd00::1
+	Port 22
+	User Ian
+	IdentityFile ~/.ssh/iansync
+	IdentitiesOnly yes
+	#!! GroupLabels admin
+	#!! EnableOSC52 yes
 Host cog-WS1
 	HostName cog-WS1.cloud.lab
 	Port 2222
