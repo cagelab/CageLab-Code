@@ -263,7 +263,7 @@ function [dt, r] = updateTrialResult(in, dt, r, sM, tM, rM, aM)
 	%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 	function [recent,overall] = getCorrectRate()
 	%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-		overall = sum(dt.data.value(dt.data.value==1)) / length(dt.data.result);
+		overall = sum(dt.data.result(dt.data.result==1)) / length(dt.data.result);
 		if length(dt.data.result) >= in.stepForward
 			recent = dt.data.result(end - (in.stepForward-1):end);
 			recent = length(find(recent == 1)) / length(recent);
