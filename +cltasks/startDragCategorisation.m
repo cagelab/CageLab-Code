@@ -38,15 +38,15 @@ function startDragCategorisation(in)
 			target2.updateXY(xy(idx(2),1),xy(idx(2),2), true);
 
 			rs = randi(object.nImages); r.stimulus = rs;
-			object.selectionOut = rs;
-			target1.selectionOut = rs;
+			setP(object, 'selection', rs);
+			setP(target1, 'selection', rs);
 			rr = rs;
 			for jj = 2
 				rs = randi(set{jj}.nImages);
 				while any(rs == rr)
 					rs = randi(set{jj}.nImages);
 				end
-				set{jj}.selectionOut = rs;
+				setP(set{jj}, 'selection', rs);
 				rr = [rr rs];
 			end
 

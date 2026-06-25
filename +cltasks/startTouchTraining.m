@@ -109,8 +109,8 @@ function startTouchTraining(in)
 			target.yPositionOut = y;
 			target.sizeOut = phases(r.phase).size;
 			if isa(target,'imageStimulus')
-				target.selectionOut = randi(target.nImages);
-				r.stimulus = target.selectionOut;
+				setP(target, 'selection', randi(target.nImages));
+				r.stimulus = getP(target, 'selection');
 			end
 			update(target);
 
