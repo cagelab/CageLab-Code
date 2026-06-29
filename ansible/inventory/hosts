@@ -75,6 +75,8 @@ cagelab_pacman:
       ansible_host: pacman-004.cloud.lab
     pacman-005:
       ansible_host: pacman-005.cloud.lab
+  pacman-006:
+    ansible_host: pacman-005.cloud.lab
   vars:
     ansible_user: cagelab
     ansible_ssh_private_key_file: ~/.ssh/cagelab
@@ -91,6 +93,8 @@ cagelab_pacman_ip:
       ansible_host: 192.168.3.24
     pacman-005i:
       ansible_host: 192.168.3.25
+    pacman-006i:
+      ansible_host: 192.168.3.26
   vars:
     ansible_user: cagelab
     ansible_ssh_private_key_file: ~/.ssh/cagelab

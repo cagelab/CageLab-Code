@@ -1,5 +1,6 @@
 ---
 # Install chrony on Ubuntu and configure it as an NTP slave to a single master
+# Dont forget on the chrony server, set allow x.x.x.x/16 to IP of the student
 - name: Install and configure chrony
   hosts: all
   become: true

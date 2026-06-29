@@ -63,13 +63,13 @@ if [ "$PLATFORM" = "Linux" ]; then
 	sudo apt -my install apt-transport-https ca-certificates software-properties-common
 	sudo apt -my install build-essential zsh git gparted vim curl file mc
 	sudo apt -my install gawk mesa-utils exfatprogs
-	sudo apt -my install freeglut3-dev 
 	sudo apt -my install libglut-dev
 	sudo apt -my install pipewire-pulse pulseaudio-utils
 	sudo apt -my install openssh-server
-	sudo apt -my install i3 rofi nitrogen xdotool
+	sudo apt -my install i3 rofi xdotool
+	sudo apt -my install nitrogen
 	sudo apt -my install p7zip-full p7zip-rar figlet jq htop
-	sudo apt -my install libunrar5 libdc1394-25 libraw1394-11
+	sudo apt -my install libunrar5 libdc1394-dev libraw1394-dev
 	sudo apt -my install gstreamer1.0-plugins-good gstreamer1.0-plugins-bad gstreamer1.0-plugins-ugly
 	sudo apt -my install synaptic zathura zathura-pdf-poppler zathura-ps
 	sudo apt -my install tmux tmuxp
