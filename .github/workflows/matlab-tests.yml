@@ -32,12 +32,6 @@ jobs:
           repository: iandol/opticka
           path: opticka
 
-      - name: Check out Opticka dependencies
-        uses: actions/checkout@v6
-        with:
-          repository: CogPlatform/Palamedes
-          path: Palamedes
-
       - name: Check out MATLAB ZeroMQ dependency
         uses: actions/checkout@v6
         with:
@@ -47,7 +41,7 @@ jobs:
       - name: Check out matmoteGO dependency
         uses: actions/checkout@v6
         with:
-          repository: Ccccraz/matmoteGO
+          repository: cagelab/matmoteGO
           path: matmoteGO
 
       - name: Check out PTBSimia dependency
