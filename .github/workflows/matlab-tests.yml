@@ -1,0 +1,101 @@
+name: MATLAB Tests
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '**/*.m'
+      - 'tests/**'
+      - '.github/workflows/matlab-tests.yml'
+  pull_request:
+    branches: [main]
+    paths:
+      - '**/*.m'
+      - 'tests/**'
+      - '.github/workflows/matlab-tests.yml'
+  workflow_dispatch: {}
+
+jobs:
+  test:
+    name: Run CageLab MATLAB Unit Tests
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out CageLab
+        uses: actions/checkout@v6
+        with:
+          path: CageLab-Code
+
+      # Opticka discovers these projects as siblings of its repository.
+      - name: Check out Opticka
+        uses: actions/checkout@v6
+        with:
+          repository: iandol/opticka
+          path: opticka
+
+      - name: Check out Opticka dependencies
+        uses: actions/checkout@v6
+        with:
+          repository: CogPlatform/Palamedes
+          path: Palamedes
+
+      - name: Check out MATLAB ZeroMQ dependency
+        uses: actions/checkout@v6
+        with:
+          repository: CogPlatform/matlab-jzmq
+          path: matlab-jzmq
+
+      - name: Check out matmoteGO dependency
+        uses: actions/checkout@v6
+        with:
+          repository: Ccccraz/matmoteGO
+          path: matmoteGO
+
+      - name: Check out PTBSimia dependency
+        uses: actions/checkout@v6
+        with:
+          repository: Ccccraz/PTBSimia
+          path: PTBSimia
+
+      - name: Install system dependencies
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y xvfb xauth curl unzip
+          sudo apt-get install -y libglut-dev libglu1-mesa-dev libx11-dev
+          sudo apt-get install -y libdc1394-dev libraw1394-dev
+
+      - name: Download Psychtoolbox dependency
+        run: |
+          curl --fail --location --retry 3 \
+            --output /tmp/ptb.zip \
+            https://github.com/Psychtoolbox-3/Psychtoolbox-3/releases/download/3.0.21.0/3.0.21.0.zip
+          mkdir -p /tmp/PTB
+          unzip -q -o /tmp/ptb.zip -d /tmp/PTB
+
+      - name: Set up MATLAB
+        uses: matlab-actions/setup-matlab@v3
+        with:
+          release: latest
+          cache: true
+
+      - name: Start virtual display
+        run: |
+          Xvfb :99 -screen 0 1024x768x24 -ac \
+            > /tmp/xvfb.log 2>&1 &
+          echo "DISPLAY=:99" >> "$GITHUB_ENV"
+          sleep 2
+
+      - name: Run CageLab tests under virtual display
+        uses: matlab-actions/run-command@v3
+        with:
+          command: |
+            repoRoot = fullfile(getenv('GITHUB_WORKSPACE'), 'CageLab-Code');
+            optickaRoot = fullfile(getenv('GITHUB_WORKSPACE'), 'opticka');
+            addpath(optickaRoot);
+            setupOptickaCI;
+            cd(repoRoot);
+            addpath('tests');
+            suite = matlab.unittest.TestSuite.fromFolder('tests');
+            results = run(suite);
+            if any([results.Failed])
+              error('CageLab:TestsFailed', 'One or more MATLAB tests failed.');
+            end

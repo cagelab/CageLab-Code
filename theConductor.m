@@ -273,6 +273,7 @@ classdef theConductor < optickaCore
 		%>   status code.
 		% ===================================================================
 			% handle HTTP response based on status code
+			result = "";
 			if isempty(response)
 				return;
 			end
