@@ -100,6 +100,11 @@ Host cagelab-005
 	User cagelab
 	IdentityFile ~/.ssh/cagelab
 	IdentitiesOnly yes
+Host cagelab-008
+	HostName cagelab-006.cloud.lab
+	User cagelab
+	IdentityFile ~/.ssh/cagelab
+	IdentitiesOnly yes
 Host cagelab-006
 	HostName cagelab-006.cloud.lab
 	User cagelab
@@ -143,6 +148,11 @@ Host cagelab-004i
 	IdentitiesOnly yes
 Host cagelab-005i
 	HostName 192.168.3.15
+	User cagelab
+	IdentityFile ~/.ssh/cagelab
+	IdentitiesOnly yes
+Host cagelab-008i
+	HostName 192.168.3.18
 	User cagelab
 	IdentityFile ~/.ssh/cagelab
 	IdentitiesOnly yes
