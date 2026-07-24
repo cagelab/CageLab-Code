@@ -30,8 +30,10 @@ function in = checkInput(in)
 
 	defaults.phase = 1;
 	defaults.stimulusType = 'Picture';
+	defaults.stimulus = 'Picture';
 	defaults.task = 'generic';
 	defaults.taskType = 'normal';
+	defaults.object = 'quaddles';
 
 	defaults.name = 'simulcra';
 	defaults.rewardmode = 1;
@@ -80,17 +82,26 @@ function in = checkInput(in)
 	defaults.initHoldTime = 0.005;
 	defaults.targetHoldTime = 0.005;
 
+	defaults.distractorN = 1;
+	defaults.distractorY = 5;
+	defaults.sampleTime = 0.5;
+	defaults.delayTime = 0.5;
+
 	defaults.zmq = [];
+	defaults.alyx = [];
 	defaults.useAlyx = false;
 	defaults.useBlending = true;
 	defaults.disableSync = true;
 	defaults.useVulkan = false;
 	defaults.command = '';
 	defaults.trackID = false;
-	defaults.session = struct('researcherName', 'admin', 'labName', 'CogPlatform', 'projectName', 'TestTraining', 'subjectName', 'TestSubject');
-	defaults.lab = 'CogPlatform';
+	defaults.session = struct('researcherName', 'admin', 'labName', 'CognitionPlatform', 'projectName', 'TestTraining', 'subjectName', 'TestSubject');
+	defaults.lab = 'CognitionPlatform';
 	defaults.sessionURL = '';
-	defaults.totalRewards = 100;
+	defaults.totalRewards = 10;
+	defaults.totalTrials = 10;
+	defaults.easyMode = true;
+	defaults.ITI = 1;
 
 	fields = fieldnames(defaults);
 	for i = 1:numel(fields)

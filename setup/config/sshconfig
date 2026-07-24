@@ -34,6 +34,13 @@ Host cog5z
 	IdentitiesOnly yes
 	#!! GroupLabels admin
 	#!! EnableOSC52 yes
+Host cog21
+	HostName cog21.cloud.lab
+	User cog
+	IdentityFile ~/.ssh/cagelab
+	IdentitiesOnly yes
+	#!! GroupLabels admin
+	#!! EnableOSC52 yes
 Host cog12
 	HostName cog12.cloud.lab
 	User cagelab
@@ -50,13 +57,6 @@ Host cog12i
 	#!! EnableOSC52 yes
 Host win420
 	HostName 192.168.3.99
-	User cog
-	IdentityFile ~/.ssh/cagelab
-	IdentitiesOnly yes
-	#!! GroupLabels admin
-	#!! EnableOSC52 yes
- Host cog21
-	HostName cog21.cloud.lab
 	User cog
 	IdentityFile ~/.ssh/cagelab
 	IdentitiesOnly yes
@@ -100,11 +100,6 @@ Host cagelab-005
 	User cagelab
 	IdentityFile ~/.ssh/cagelab
 	IdentitiesOnly yes
-Host cagelab-008
-	HostName cagelab-006.cloud.lab
-	User cagelab
-	IdentityFile ~/.ssh/cagelab
-	IdentitiesOnly yes
 Host cagelab-006
 	HostName cagelab-006.cloud.lab
 	User cagelab
@@ -112,6 +107,11 @@ Host cagelab-006
 	IdentitiesOnly yes
 Host cagelab-007
 	HostName cagelab-007.cloud.lab
+	User cagelab
+	IdentityFile ~/.ssh/cagelab
+	IdentitiesOnly yes
+Host cagelab-008
+	HostName cagelab-008.cloud.lab
 	User cagelab
 	IdentityFile ~/.ssh/cagelab
 	IdentitiesOnly yes
@@ -151,11 +151,6 @@ Host cagelab-005i
 	User cagelab
 	IdentityFile ~/.ssh/cagelab
 	IdentitiesOnly yes
-Host cagelab-008i
-	HostName 192.168.3.18
-	User cagelab
-	IdentityFile ~/.ssh/cagelab
-	IdentitiesOnly yes
 Host cagelab-006i
 	HostName 10.102.22.33
 	User cagelab
@@ -163,6 +158,11 @@ Host cagelab-006i
 	IdentitiesOnly yes
 Host cagelab-007i
 	HostName 10.102.22.7
+	User cagelab
+	IdentityFile ~/.ssh/cagelab
+	IdentitiesOnly yes
+Host cagelab-008i
+	HostName 192.168.3.18
 	User cagelab
 	IdentityFile ~/.ssh/cagelab
 	IdentitiesOnly yes

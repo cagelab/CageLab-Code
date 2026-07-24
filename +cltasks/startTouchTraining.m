@@ -22,12 +22,12 @@ function startTouchTraining(in)
 		[sM, aM, rM, tM, r, dt, in] = clutil.initialise(in, bgName, prefix);
 
 		%% ============================task specific figures
-		if matches(in.stimulus, 'Picture')
+		if isfield(in,'stimulus') && matches(char(in.stimulus), 'Disc')
+			target = discStimulus('size', in.maxSize, 'colour', in.fg);
+		else
 			target = imageStimulus('size', in.maxSize, ...
 				'filePath', [in.folder filesep 'flowers'], ...
 				'crop', 'square', 'circularMask', true);
-		else
-			target = discStimulus('size', in.maxSize, 'colour', in.fg);
 		end
 		if in.debug; target.verbose = true; end
 

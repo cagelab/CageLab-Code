@@ -6,7 +6,7 @@ function startIED(in)
 	%   in = struct();
 	%   in.taskType = 'sd'; % 'sd','sr','cd','cr','ids','idr','eds','edr'
 	%   in.taskType stage meanings (CANTAB IED sequence):
-	%     sd  - Simple Discrimination: only shape varies; learn initial rule (shape dimension relevant).
+	%     sd  - Simple Discrimination: DIM 1 varies; learn initial rule (shape dimension relevant).
 	%     cd  - Compound Discrimination: shape + color shown; shape remains relevant while color is an irrelevant distractor.
 	%     sr  - Simple Reversal: same stimuli as SD; reward contingency reverses to test reversal learning.
 	%     cr  - Compound Reversal: same compound setup as CD; reward contingency reverses on the same relevant dimension.
@@ -31,7 +31,6 @@ function startIED(in)
 	bgName = 'redmarbleA.jpg';
 	prefix = 'IED';
 	
-
 	try
 		%% ============================subfunction for shared initialisation
 		[sM, aM, rM, tM, r, dt, in] = clutil.initialise(in, bgName, prefix);

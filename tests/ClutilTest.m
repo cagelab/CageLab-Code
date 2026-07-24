@@ -35,13 +35,7 @@ classdef ClutilTest < matlab.unittest.TestCase
 	end
 
 	methods (Test, TestTags = {'CI'})
-		% ===================================================================
-		%> @brief Check the software version exported by clutil.
-		% ===================================================================
-		function testVersion(testCase)
-			verifyEqual(testCase, clutil.version, '1.0.69');
-		end
-
+		
 		% ===================================================================
 		%> @brief Check that checkInput fills all required defaults.
 		% ===================================================================

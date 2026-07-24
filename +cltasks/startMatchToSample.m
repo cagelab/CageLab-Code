@@ -22,15 +22,15 @@ function startMatchToSample(in)
 
 	if ~exist('in','var'); in = struct('task','dmts'); end
 	in = clutil.checkInput(in);
-	if matches(in.task,'mts')
-		bgName = 'abstract2.jpg';
-		prefix = 'MTS';
-	elseif matches(in.task,'dmts')
+	if matches(in.task,'dmts')
 		bgName = 'abstract3.jpg';
 		prefix = 'DMTS';
 	elseif matches(in.task,'dnts')
 		bgName = 'creammarbleB.jpg';
 		prefix = 'DNTS';
+	else % default is MTS
+		bgName = 'abstract2.jpg';
+		prefix = 'MTS';
 	end
 
 	fractalsFolders = ["A" "B" "C" "D" "E" "F" "G" "H" "I" "J" "K" "L"];
@@ -43,12 +43,12 @@ function startMatchToSample(in)
 
 		%% ============================task specific figures
 		switch lower(in.object)
-			case 'fractals'
-				[pfix1, pfix2, pfix3, pfix4, pfix5] = getPrefixes(fractalsFolders);
-			case 'quaddles'
-				[pfix1, pfix2, pfix3, pfix4, pfix5] = getPrefixes(quaddlesFolders);
 			case 'flowers'
 				[pfix1, pfix2, pfix3, pfix4, pfix5] = deal("");
+			case 'fractals'
+				[pfix1, pfix2, pfix3, pfix4, pfix5] = getPrefixes(fractalsFolders);
+			otherwise
+				[pfix1, pfix2, pfix3, pfix4, pfix5] = getPrefixes(quaddlesFolders);
 		end
 		pedestal 					= discStimulus('size', in.objectSize + 1,'colour',[0.5 1 1],'alpha',0.3,'yPosition',in.sampleY);
 		sample 						= imageStimulus('size', in.objectSize, 'randomiseSelection', false,...

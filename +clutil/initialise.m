@@ -176,8 +176,11 @@ function [sM, aM, rM, tM, r, dt, in] = initialise(in, bgName, prefix)
 		alyx = in.alyx;
 	else
 		alyx = alyxManager();
-		try setSecrets(alyx); end
-		if ~hasSecrets(in.alyx);error('When using Alyx, Secrets must be created on control PC and sent before running task!!!');end
+		if in.useAlyx
+			try setSecrets(alyx); end
+			if ~hasSecrets(alyx);error('When using Alyx, Secrets must be created on control PC and sent before running task!!!');end
+	
+		end
 	end
 	try in = rmfield(in,'alyx'); end %#ok<*TRYNC>
 	checkPaths(alyx);
