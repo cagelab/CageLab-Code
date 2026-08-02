@@ -124,6 +124,102 @@ classdef StartIEDMorphobesTest < matlab.unittest.TestCase
 		end
 
 		% ===================================================================
+		%> @brief User-supplied numTargets must NOT be overwritten by the
+		%> task defaults (regression: task='ied' + numTargets=4 previously
+		%> collapsed to two targets).
+		% ===================================================================
+		function testCheckInputIedRespectsUserNumTargets(testCase)
+			in = clutil.checkInput(struct('task', 'ied', 'numTargets', 4));
+			verifyEqual(testCase, in.numTargets, 4, ...
+				'numTargets=4 with task=ied must be preserved');
+			verifyEqual(testCase, in.objectSize, 8, ...
+				'4D sizing applies when numTargets=4');
+
+			in2 = clutil.checkInput(struct('task', 'ied', 'numTargets', 2));
+			verifyEqual(testCase, in2.numTargets, 2);
+			verifyEqual(testCase, in2.objectSize, 10, ...
+				'2D sizing applies when numTargets=2');
+		end
+
+		% ===================================================================
+		%> @brief User-supplied id/ed dimensions must NOT be overwritten by
+		%> the task defaults (regression: edDimension='appendage' previously
+		%> collapsed to shape).
+		% ===================================================================
+		function testCheckInputIedRespectsUserDimensions(testCase)
+			in = clutil.checkInput(struct('task', 'ied', ...
+				'edDimension', 'appendage', 'idDimension', 'texture'));
+			verifyEqual(testCase, in.edDimension, 'appendage', ...
+				'edDimension=appendage must be preserved');
+			verifyEqual(testCase, in.idDimension, 'texture', ...
+				'idDimension=texture must be preserved');
+		end
+
+		% ===================================================================
+		%> @brief User-supplied criterion/maxIncorrect must be preserved.
+		% ===================================================================
+		function testCheckInputIedRespectsUserCriteria(testCase)
+			in = clutil.checkInput(struct('task', 'ied', ...
+				'criterion', 2, 'maxIncorrect', 3));
+			verifyEqual(testCase, in.criterion, 2);
+			verifyEqual(testCase, in.maxIncorrect, 3);
+		end
+
+		% ===================================================================
+		%> @brief clutil.normaliseDimension handles plurals, case and
+		%> whitespace variants of the four morphobes dimensions.
+		% ===================================================================
+		function testNormaliseDimension(testCase)
+			verifyEqual(testCase, clutil.normaliseDimension('appendage'), 'appendage');
+			verifyEqual(testCase, clutil.normaliseDimension('appendages'), 'appendage');
+			verifyEqual(testCase, clutil.normaliseDimension('Appendage'), 'appendage');
+			verifyEqual(testCase, clutil.normaliseDimension('APPENDAGES'), 'appendage');
+			verifyEqual(testCase, clutil.normaliseDimension('shape'), 'shape');
+			verifyEqual(testCase, clutil.normaliseDimension('shapes'), 'shape');
+			verifyEqual(testCase, clutil.normaliseDimension('colour'), 'colour');
+			verifyEqual(testCase, clutil.normaliseDimension('colours'), 'colour');
+			verifyEqual(testCase, clutil.normaliseDimension('texture'), 'texture');
+			verifyEqual(testCase, clutil.normaliseDimension('textures'), 'texture');
+			verifyEqual(testCase, clutil.normaliseDimension('  shape  '), 'shape');
+			verifyEqual(testCase, clutil.normaliseDimension('sound'), '', ...
+				'invalid dimension returns empty');
+			verifyEqual(testCase, clutil.normaliseDimension(''), '', ...
+				'empty returns empty');
+		end
+
+		% ===================================================================
+		%> @brief The task source uses the normaliseDimension helper and
+		%> the EDS/EDR stage switches to the configured ED dimension.
+		% ===================================================================
+		function testSourceUsesEDDimensionForShift(testCase)
+			source = fileread(which('cltasks.startIEDmorphobes'));
+			verifyTrue(testCase, contains(source, 'clutil.normaliseDimension'));
+			verifyTrue(testCase, contains(source, 'relDim = in.edDimension'));
+			verifyTrue(testCase, contains(source, 'relDim = in.idDimension'));
+		end
+
+		% ===================================================================
+		%> @brief The task stage parser accepts the GUI's bracket/quoted
+		%> taskType format: '[ "sd" "sr" ... ]'.
+		% ===================================================================
+		function testSourceParsesGuiTaskType(testCase)
+			source = fileread(which('cltasks.startIEDmorphobes'));
+			verifyTrue(testCase, contains(source, '''['''), ...
+				'source strips brackets from taskType');
+			verifyTrue(testCase, contains(source, 'replace(stages'));
+		end
+
+		% ===================================================================
+		%> @brief EDS/EDR with appendage ED is only meaningful in 4D; the
+		%> source must warn when the ED dimension has constant levels.
+		% ===================================================================
+		function testSourceWarnsConstantEDDimension(testCase)
+			source = fileread(which('cltasks.startIEDmorphobes'));
+			verifyTrue(testCase, contains(source, 'ConstantEDDimension'));
+			verifyTrue(testCase, contains(source, 'numTargets=4'));
+		end
+
+		% ===================================================================
 		%> @brief All eight CANTAB IED stages remain in the task source.
 		% ===================================================================
 		function testSourceHasAllStages(testCase)
