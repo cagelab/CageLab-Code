@@ -150,6 +150,11 @@ channels = ["conda-forge"]
 dependencies = { tsshd = "*" }
 exposed = { tsshd = "tsshd" }
 
+[envs.trzsz]
+channels = ["conda-forge"]
+dependencies = { trzsz = "*" }
+exposed = { trz = "trz", trzsz = "trzsz", tsz = "tsz" }
+
 [envs.tmux]
 channels = ["conda-forge"]
 dependencies = { tmux = "*" }

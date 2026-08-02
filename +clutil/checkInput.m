@@ -31,7 +31,7 @@ function in = checkInput(in)
 	defaults.phase = 1;
 	defaults.stimulusType = 'Picture';
 	defaults.stimulus = 'Picture';
-	defaults.task = 'generic';
+	defaults.task = 'train';
 	defaults.taskType = 'normal';
 	defaults.object = 'quaddles';
 
@@ -110,5 +110,47 @@ function in = checkInput(in)
 			in.(f) = defaults.(f);
 		end
 	end
+
+	switch in.task
+		case {'dmts' 'dnts' 'mts' 'nmts'}
+
+		case 'ied'
+			in.taskType = 'sd cd cr ids idr eds edr'; % stages run in sequence
+			in.numTargets = 2;        % 2D variant: two targets (left/right)
+			in.idDimension = 'colour'; % 'shape','colour','appendage','texture' — ID dim
+			in.edDimension = 'shape';  % 'shape','colour','appendage','texture' — ED dim
+			in.criterion = 6;         % consecutive correct to advance
+			in.maxIncorrect = 50;     % incorrect trials on stage before task terminates
+			in.objectSize = 10;       % size of objects in degrees
+			in.objectSep = 15;        % separation of objects in degrees
+			in.sampleY = 0;           % vertical position in degrees
+			in.trialTime = 5.0;				% max trial time in seconds
+			in.targetHoldTime = 0.2;	% target hold time in seconds
+			in.morphobesFolder = '';	% morphobes dataset folder (defaults to resources/morphobes_ied)
+			in.fixSize = 2;				% fixation size in degrees
+			in.fixWindow = 4;			% fixation window size in degrees
+		case {'ied-2' 'ied-4'}
+			in.taskType = 'sd cd cr ids idr eds edr'; % stages run in sequence
+			in.idDimension = 'colour'; % 'shape','colour','appendage','texture' — ID dim
+			in.edDimension = 'shape';  % 'shape','colour','appendage','texture' — ED dim
+			in.criterion = 6;         % consecutive correct to advance
+			in.maxIncorrect = 50;     % incorrect trials on stage before task terminates
+			in.objectSize = 8;        % size of objects in degrees
+			in.objectSep = 12;        % separation of objects in degrees
+			in.sampleY = 0;           % vertical centre of the 2x2 grid in degrees
+			in.trialTime = 5.0;				% max trial time in seconds
+			in.targetHoldTime = 0.2;	% target hold time in seconds
+			in.morphobesFolder = '';	% morphobes dataset folder (defaults to resources/morphobes)
+			in.fixSize = 2;				% fixation size in degrees
+			in.fixWindow = 4;			% fixation window size in degrees
+			if strcmp(in.task, 'ied-2')
+				in.numTargets = 2;    % 2D variant: two targets (left/right)
+			else
+				in.numTargets = 4;    % 4D variant: four targets in 2x2 grid
+			end
+		otherwise
+
+	end
+
 
 end
