@@ -256,7 +256,7 @@ All CageLab code is version-controlled via Git, synced from Github (where we do 
 
 CageLab requires reliable network connectivity between the Control-PC and all CageLab-Boxes. This chapter covers the three networking layers: NetBird VPN, SSH, and NoMachine remote desktop.
 
-```{.mermaid #fig:comms caption="Multi-CageLab communication" export_scale=5 width=80%}
+```{.mermaid #fig:comms caption="Multi-CageLab communication" export_scale=5 width=100%}
 flowchart TD
     subgraph CP[Control-PC]
         A[Experimenter]
@@ -293,6 +293,22 @@ flowchart TD
     CG2 <--> TC2
 ```
 
+## SSH Configuration \index{SSH}
+
+SSH is a primary command-line interface to each CageLab-Box. Key-based authentication avoids password prompts, and can be used both for `ssh` from the terminal and the visual remote desktop Nomachine.
+
+### Creating SSH Keys \index{SSH!key generation}
+
+SSH keys are more secure than using passwords, and also more convenient. There are two parts to a SSH key, a private and public key. The private key is kept ONLY on the Control-PC and must be kept private and not shared to unauthorised people. The public key should be installed on all CageLabs. On the Control-PC:
+
+```bash
+ssh-keygen -t ed25519 -f ~/.ssh/cagelab -C "cagelab-control"
+ssh-copy-id -i ~/.ssh/cagelab.pub cagelab@x.x.x.x
+```
+
+You must edit `/etc/ssh/sshd_config` to ensure only the Netbird IP is accepted using `ListenAddress`, and disable password access with `PasswordAuthentication no`.
+
+
 ## NetBird VPN \index{NetBird}\index{VPN|see{NetBird}}
 
 NetBird is a WireGuard-based mesh VPN that provides encrypted peer-to-peer connectivity. It is essential when CageLab-Boxes are on a different physical network from the Control-PC (e.g., separate lab networks or across institutions).
@@ -313,11 +329,10 @@ Each device must be registered with your NetBird account using a setup key:
 netbird up --setup-key YOUR_SETUP_KEY
 ```
 
-The setup key can be stored as the environment variable `NETBIRD_SETUP_KEY` for automated provisioning via Ansible:
+The setup key can be stored as the environment variable `NETBIRD_SETUP_KEY` for automated provisioning via Ansible\index{Ansible!playbooks}:
 
 ```bash
 NETBIRD_SETUP_KEY=your-key ansible-playbook -l cagelab -K ansible/playbooks/install_netbird.yaml
-\index{Ansible!playbooks}
 ```
 
 ### Managing the Mesh
@@ -325,7 +340,7 @@ NETBIRD_SETUP_KEY=your-key ansible-playbook -l cagelab -K ansible/playbooks/inst
 -   **View connected peers**: `netbird status`
 -   **Access a box via its NetBird IP**: Once connected, each box gets a stable VPN IP (e.g., `100.112.x.x` or IPv6 `fd00:1:1::x`), and a hostname like `cagelab-001.cloud.lab` reachable from any other peer in the mesh.
 
-### SSH Config (~/.ssh/config)
+### SSH Config (~/.ssh/config) {#sshconfig}
 
 `makelinks.sh` symlinks a pre-configured SSH config from `setup/config/sshconfig`. You MUST edit this to be relelvant to your devices and network:
 
@@ -343,30 +358,15 @@ Host cagelab-002
     IdentitiesOnly yes
 ```
 
-
-**Naming convention**: The `.ssh/config` and the ansible inventory file (`ansible/inventory/hosts`) defines several systems. Boxes accessed via DNS names (`*.cloud.lab`) are in groups like `cagelab`; boxes accessed via raw IPs have `i`-suffixed names (e.g., `cagelab-001i`). This dual-entry approach lets SSH/Ansible target the same box over different network paths if necessary, though you should prefer Netbird routes where possible.
-
-## SSH Configuration \index{SSH}
-
-SSH is the primary command-line interface to each CageLab-Box. Key-based authentication avoids password prompts.
-
-### Creating SSH Keys \index{SSH!key generation}
-
-SSH keys are more secure than using passwords, and also more convenient. There are two parts to a SSH key, a private and public key. The private key is kept ONLY on the Control-PC and must be kept private and not shared to unauthorised people. The public key should be installed on all CageLabs. On the Control-PC:
-
-```bash
-ssh-keygen -t ed25519 -f ~/.ssh/cagelab -C "cagelab-control"
-ssh-copy-id -i ~/.ssh/cagelab.pub cagelab@<BOX-IP>
-```
-
-You should edit `/etc/ssh/sshd_config` to ensure only the Netbird IP is accepted using `ListenAddress`, and disable password access with `PasswordAuthentication no`.
-
-### Quick SSH Access
+Then you can use just the name to `ssh` into the remote system:
 
 ```bash
 ssh cagelab-002               # via SSH config
 ssh cagelab@192.168.3.22 -i ~/.ssh/cagelab  # manual
 ```
+
+
+**Naming convention**: The `.ssh/config` and the ansible inventory file (`ansible/inventory/hosts`) defines several systems. Boxes accessed via DNS names (`*.cloud.lab`) are in groups like `cagelab`; boxes accessed via raw IPs have `i`-suffixed names (e.g., `cagelab-001i`). This dual-entry approach lets SSH/Ansible target the same box over different network paths if necessary, though you should prefer Netbird routes where possible.
 
 ## NoMachine Remote Desktop \index{NoMachine}
 

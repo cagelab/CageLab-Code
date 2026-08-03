@@ -2,7 +2,7 @@
 
 `#minitoc`{.typst}
 
-Alyx is an experiment database made by International Brain Lab. While Alyx is mostly focused on neuroscience tasks in mice, it can be generalised to other species as it supports generic JSON fields, and the core structure across species is more similar than the differences anyway. We use TWO services:
+Alyx\index{Alyx} is an experiment database made by International Brain Lab. While Alyx is mostly focused on neuroscience tasks in mice, it can be generalised to other species as it supports generic JSON fields, and the core structure across species is more similar than the differences anyway. We use TWO services:
 
 * Alyx database — register subjects, labs, experimenters, projects and tasks; each time a session is run record the experiment metadata and link to the binary experiment files.
 * S3 data store ([Minio](https://minio.org) server) — copy raw binary and text experiment files saved by each session linked to the Alyx session metadata. Searching in Alyx can recover the files saved in the S3 data store.

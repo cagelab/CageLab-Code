@@ -382,7 +382,7 @@ function startIEDmorphobes(in)
 			end
 
 			% Determine chosen target from touchManager's windowTouched
-			if tch && tM.windowTouched > 0 && tM.windowTouched <= numTargets
+			if any(tch) && any(tM.windowTouched > 0) && any(tM.windowTouched <= numTargets)
 				chosenTarget = tM.windowTouched;
 			else
 				chosenTarget = 0;

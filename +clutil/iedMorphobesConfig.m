@@ -1,4 +1,4 @@
-function config = iedMorphobesConfig(numTargets)
+function config = iedMorphobesConfig(numTargets, metaTable)
 	% IEDMORPHOBESCONFIG Return the stimulus level configuration for the
 	% morphobes IED task.
 	%   config = iedMorphobesConfig(numTargets)
@@ -19,6 +19,7 @@ function config = iedMorphobesConfig(numTargets)
 
 	arguments (Input)
 		numTargets (1,1) double {mustBeMember(numTargets, [2 4])}
+		metaTable
 	end
 
 	arguments (Output)
@@ -37,16 +38,16 @@ function config = iedMorphobesConfig(numTargets)
 		config.dimLevels.appendage = [0 1 2 3; 0 1 2 3; 0 1 2 3];   % 4 levels, all reuse
 		config.dimLevels.texture   = [0 1 2 3; 0 1 2 3; 0 1 2 3];   % 4 levels, all reuse
 		% Exemplar per set — all dimensions within a set use the same exemplar
-		config.setExemplars = [0 1 2];
+		config.setExemplars = 0 : maxExemplar;
 	else
 		% 2D: two levels per set, shape and colour vary (appendage/texture constant).
 		% Level values chosen for maximal visual distinctness within the
 		% current unified dataset (shape levels 0-7, colour levels 0-7).
 		config.dimLevels.shape     = [3 6; 1 5; 0 7];   % 6 unique
 		config.dimLevels.colour    = [0 1; 2 4; 6 7];   % 6 unique
-		config.dimLevels.appendage = [0 0; 0 0; 0 0];   % constant
-		config.dimLevels.texture   = [0 0; 0 0; 0 0];   % constant
+		config.dimLevels.appendage = [defAppendage defAppendage; defAppendage defAppendage; defAppendage defAppendage];   % constant
+		config.dimLevels.texture   = [defTexture defTexture; defTexture defTexture; defTexture defTexture];   % constant
 		% 2D dataset only has exemplar 0
-		config.setExemplars = [0 0 0];
+		config.setExemplars = [0 0 0 0];
 	end
 end
