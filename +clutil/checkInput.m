@@ -103,6 +103,12 @@ function in = checkInput(in)
 	defaults.easyMode = true;
 	defaults.ITI = 1;
 
+	% Capture which fields the caller actually supplied BEFORE the generic
+	% defaults fill below, so user overrides (e.g. numTargets=4 or
+	% edDimension='appendage') are never silently overwritten, while
+	% missing fields still receive the task-specific defaults.
+	userFields = fieldnames(in);
+
 	fields = fieldnames(defaults);
 	for i = 1:numel(fields)
 		f = fields{i};
@@ -115,42 +121,53 @@ function in = checkInput(in)
 		case {'dmts' 'dnts' 'mts' 'nmts'}
 
 		case 'ied'
-			in.taskType = 'sd cd cr ids idr eds edr'; % stages run in sequence
-			in.numTargets = 2;        % 2D variant: two targets (left/right)
-			in.idDimension = 'colour'; % 'shape','colour','appendage','texture' — ID dim
-			in.edDimension = 'shape';  % 'shape','colour','appendage','texture' — ED dim
-			in.criterion = 6;         % consecutive correct to advance
-			in.maxIncorrect = 50;     % incorrect trials on stage before task terminates
-			in.objectSize = 10;       % size of objects in degrees
-			in.objectSep = 15;        % separation of objects in degrees
-			in.sampleY = 0;           % vertical position in degrees
-			in.trialTime = 5.0;				% max trial time in seconds
-			in.targetHoldTime = 0.2;	% target hold time in seconds
-			in.morphobesFolder = '';	% morphobes dataset folder (defaults to resources/morphobes_ied)
-			in.fixSize = 2;				% fixation size in degrees
-			in.fixWindow = 4;			% fixation window size in degrees
-		case {'ied-2' 'ied-4'}
-			in.taskType = 'sd cd cr ids idr eds edr'; % stages run in sequence
-			in.idDimension = 'colour'; % 'shape','colour','appendage','texture' — ID dim
-			in.edDimension = 'shape';  % 'shape','colour','appendage','texture' — ED dim
-			in.criterion = 6;         % consecutive correct to advance
-			in.maxIncorrect = 50;     % incorrect trials on stage before task terminates
-			in.objectSize = 8;        % size of objects in degrees
-			in.objectSep = 12;        % separation of objects in degrees
-			in.sampleY = 0;           % vertical centre of the 2x2 grid in degrees
-			in.trialTime = 5.0;				% max trial time in seconds
-			in.targetHoldTime = 0.2;	% target hold time in seconds
-			in.morphobesFolder = '';	% morphobes dataset folder (defaults to resources/morphobes)
-			in.fixSize = 2;				% fixation size in degrees
-			in.fixWindow = 4;			% fixation window size in degrees
-			if strcmp(in.task, 'ied-2')
-				in.numTargets = 2;    % 2D variant: two targets (left/right)
-			else
-				in.numTargets = 4;    % 4D variant: four targets in 2x2 grid
+			% Classic 'ied' defaults to 2D, but if the caller explicitly
+			% sets numTargets=4 then 4D sizing follows.
+			n = 2;
+			if isfield(in, 'numTargets') && ~isempty(in.numTargets)
+				n = in.numTargets;
 			end
+			if n == 4
+				in = applyIedDefaults(in, userFields, 4, 8, 12);
+			else
+				in = applyIedDefaults(in, userFields, 2, 10, 15);
+			end
+		case {'ied-2' 'ied-4'}
+			if strcmp(in.task, 'ied-2')
+				n = 2;
+			else
+				n = 4;
+			end
+			in = applyIedDefaults(in, userFields, n, 8, 12);
 		otherwise
 
 	end
+end
 
-
+% ===================================================================
+%> @brief Apply IED task defaults, but never overwrite a field the caller
+%> explicitly supplied (tracked in userFields).
+% ===================================================================
+function in = applyIedDefaults(in, userFields, numTargets, objectSize, objectSep)
+	iedDefaults = struct( ...
+		'taskType', 'sd cd cr ids idr eds edr', ...
+		'numTargets', numTargets, ...
+		'idDimension', 'colour', ...
+		'edDimension', 'shape', ...
+		'criterion', 6, ...
+		'maxIncorrect', 50, ...
+		'objectSize', objectSize, ...
+		'objectSep', objectSep, ...
+		'sampleY', 0, ...
+		'trialTime', 5.0, ...
+		'targetHoldTime', 0.2, ...
+		'morphobesFolder', '', ...
+		'fixSize', 2, ...
+		'fixWindow', 4);
+	f = fieldnames(iedDefaults);
+	for i = 1:numel(f)
+		if ~ismember(f{i}, userFields) || isempty(in.(f{i}))
+			in.(f{i}) = iedDefaults.(f{i});
+		end
+	end
 end

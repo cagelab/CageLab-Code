@@ -47,7 +47,8 @@ classdef ClutilTest < matlab.unittest.TestCase
 			verifyEqual(testCase, in.port, 9012);
 			verifyTrue(testCase, in.debug);
 			verifyTrue(testCase, in.dummy);
-			verifyEqual(testCase, in.task, 'generic');
+			verifyEqual(testCase, in.task, 'train', ...
+				'default task is train (touch training)');
 			verifyEqual(testCase, in.session.subjectName, 'TestSubject');
 			repoRoot = fileparts(fileparts(which('clutil.checkInput')));
 			verifyEqual(testCase, in.folder, ...

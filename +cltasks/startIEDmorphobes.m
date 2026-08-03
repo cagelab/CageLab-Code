@@ -47,14 +47,22 @@ function startIEDmorphobes(in)
 	if ~exist('in','var'); in = struct('task','ied','taskType','sd cd sr cr ids idr eds edr'); end
 	in = clutil.checkInput(in);
 
-	% Parse taskType into a row string array of stage codes
+	% Parse taskType into a row string array of stage codes.
+	% Accepts 'sd cd cr ...' or the GUI array-literal format
+	% '[ "sd" "sr" "cd" "cr" "ids" "idr" "eds" "edr" ]' (brackets, quotes
+	% and commas are stripped).
 	stages = string(in.taskType);
 	if isscalar(stages)
+		stages = replace(stages, {'[', ']', '"', '''', ',', ';'}, ' ');
 		stages = split(strip(stages));
 	end
-	stages = lower(stages(:)'); 
+	stages = lower(strip(stages));
+	stages = stages(~ismissing(stages) & stages ~= "");
+	stages = stages(:)';
 	in.stages = stages;
-	in.taskType = char(stages(1));
+	if ~isempty(stages)
+		in.taskType = char(stages(1));
+	end
 
 	% IED progression defaults
 	if ~isfield(in, 'criterion') || isempty(in.criterion); in.criterion = 6; end
@@ -67,16 +75,17 @@ function startIEDmorphobes(in)
 	end
 	numTargets = in.numTargets;
 
-	% Dimension assignment
+	% Dimension assignment — normalised with clutil.normaliseDimension so
+	% plurals ('appendages') and case variants ('Appendage') are accepted.
 	if ~isfield(in, 'idDimension') || isempty(in.idDimension)
-		in.idDimension = 'shape';
+		in.idDimension = 'colour';
 	end
 	if ~isfield(in, 'edDimension') || isempty(in.edDimension)
-		in.edDimension = 'colour';
+		in.edDimension = 'shape';
 	end
+	in.idDimension = clutil.normaliseDimension(in.idDimension);
+	in.edDimension = clutil.normaliseDimension(in.edDimension);
 	validDims = {'shape','colour','appendage','texture'};
-	in.idDimension = lower(char(in.idDimension));
-	in.edDimension = lower(char(in.edDimension));
 	if ~ismember(in.idDimension, validDims)
 		warning('idDimension ''%s'' invalid. Defaulting to colour.', in.idDimension);
 		in.idDimension = 'colour';
@@ -133,6 +142,15 @@ function startIEDmorphobes(in)
 		config = clutil.iedMorphobesConfig(numTargets);
 		dimLevels = config.dimLevels;
 		setExemplars = config.setExemplars;
+
+		% Warn if the ED dimension is constant in the final set (EDS/EDR):
+		% the 2D config only varies shape+colour, so appendage/texture ED
+		% shifts are only meaningful with numTargets=4.
+		if numel(unique(dimLevels.(in.edDimension)(3, :))) < 2
+			warning('startIEDmorphobes:ConstantEDDimension', ...
+				'edDimension ''%s'' has constant levels in set 3 (EDS/EDR). For a meaningful ED shift use numTargets=4 (4D config varies all dimensions).', ...
+				in.edDimension);
+		end
 
 		%% ============================create targets in grid
 		targetL = imageStimulus('size', in.objectSize, 'randomiseSelection', false);
