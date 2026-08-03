@@ -11,7 +11,7 @@ colorlinks: true
 papersize: a4
 fontsize: 12pt
 theme: modern # classic, modern, fancy, obook, orly, pretty
-querverweis:
+querverweis: # cross-ref pandoc plugin
   labels: ['html','plain','odt']
   link-labels: true
   numbering: "1.1"
@@ -27,29 +27,37 @@ CageLab is a modular, network-distributed system for running remote neuroscience
 
 ## The Big Picture
 
-![Main software components for Control and Communication](Images/CageLab-Componenets-Only.png){#fig:components width=40%}
+![Main software components for Control and Communication](Images/CageLab-Componenets-Only.png){#fig:components width=70%}
 
 CageLab is a combination of hardware and software. The software uses several core software components, connected over a local network or VPN.
 
-The system is built on three principles:
+The system is built on four principles:
 
-1.  **Distributed architecture** --- the experimenter designs tasks and monitors behaviour from their Control-PC; the CageLab-Box runs the experiment locally with deterministic timing via Psychtoolbox (PTB). \index{Psychtoolbox} \index{PTB|see{Psychtoolbox}}. If necessary a researcher can run the control interface and experiment from the same system (useful for debugging & development for example, or if there is no Control-PC available).
-2.  **HTTP API + ØMQ bridge** --- all external commands from the Control-PC arrive via `cogmoteGO`'s HTTP REST API; internally, `cogmoteGO` bridges these commands to `theConductor` over a local ZeroMQ (ØMQ) connection. \index{ZeroMQ (\O MQ)}
-3.  **Automation-first** --- Ansible playbooks bootstrap, update, and maintain groups of CageLab-Boxes simultaneously; systemd services keep critical processes alive and self-healing. \index{Ansible} \index{systemd}
+1.  **Distributed architecture[^dis]** --- the experimenter configures tasks and monitors behaviour from their **Control-PC**; the **CageLab-Box** runs the experiment in the home environment with deterministic timing via Psychtoolbox (PTB) \index{Psychtoolbox} \index{PTB|see{Psychtoolbox}}. 
+2.  **HTTP API + ØMQ bridge** --- all external commands from the Control-PC arrive via `cogmoteGO`'s HTTP REST API; internally, `cogmoteGO` bridges these commands to `theConductor` over a local ZeroMQ (ØMQ) connection. \index{ZeroMQ}
+3.  **Automation-first** --- Ansible playbooks bootstrap, update, and maintain groups of CageLab-Boxes simultaneously; systemd services keep critical processes alive and self-healing. APIs enable automation of task/session management. \index{Ansible} \index{systemd}
+4. **Open Data Standards** --- each experimental session can be registered using an open-science database system (Alyx), data stored using S3 storage, and metadata generalised using HED tags. It makes managing experiments more open, analysis more efficient, and more easily shared with others when the time comes for publication.
+
+> [!info]
+> While @fig:components shows just one **Control-PC** and one **CageLab-Box**, the system supports a many-to-many configuration.
+
+[^dis]: If necessary a researcher can run the control interface and experiment from the same system; this is useful for debugging & development for example, or if there is no Control-PC available. But remote control is simply more efficient. 
+
 
 ## Key Components at a Glance
 
 | Component | Role | Language | Runs On |
 |-----------|------|----------|---------|
-| **CageLab GUI** | Experiment design, control, and monitoring \index{CageLab GUI} | MATLAB | Control-PC |
 | **cogmoteGO** | HTTP API / ØMQ bridge, WebRTC streaming | Go | CageLab-Box |
+| **CageLab GUI** | Experiment design, control, and monitoring \index{CageLab GUI} | MATLAB | Control-PC |
 | **theConductor** | ØMQ REP server, receives commands and launches tasks | MATLAB | CageLab-Box |
 | **+cltasks** | Behavioural task library (MTS, IED, Oddball, etc.) | MATLAB | CageLab-Box |
 | **OBS Studio** | Video recording of experimental sessions\index{OBS Studio} | C++ (Flatpak) | CageLab-Box |
 | **MediaMTX** | RTSP/WebRTC media server for low-latency streaming\index{MediaMTX} | Go | CageLab-Box |
-| **SSH** | remote access,  | System | Control-PC |
+| **SSH** | remote access server/client\index{SSH}  | System | Both |
 | **Ansible** | Group automation, updates, and maintenance | Python | Control-PC |
 | **NetBird** | WireGuard-based VPN mesh for cross-site connectivity\index{NetBird}  | Go | Both |
+| **Alyx** | Optional but recommended Database\index{Alyx} to store daily session data  | Python | Separate server |
 :Key components []{#tbl:comps}
 
 ## Architecture Deep-Dive: HTTP API + ØMQ Bridge
@@ -91,11 +99,14 @@ sequenceDiagram
 
 ## Supported Hardware
 
-- **Touchscreens**: ILITEK-TP (tested) and other X11-compatible touch panels (controlled via `toggleInput` and `touchManager`)\index{Touchscreen!touchManager}\index{Touchscreen}\index{ILITEK-TP}
+- **Touchscreens**: ILITEK-TP (tested) and other X11-compatible touch panels (controlled via `toggleInput` and `touchManager`)\index{Touchscreen!touchManager}
 - **Reward Pumps**: PTBSimia-managed peristaltic/syringe pumps\index{PTBSimia}
 - **Audio**: Standard sound cards via Opticka's `audioManager`\index{Audio!audioManager}
 - **Camera**: Anything compatible with OBS Studio (hardware-accelerated encoding (VAAPI/NVENC))\index{Video recording|see{OBS Studio}}
 - **Screens**: Standard 60--240 Hz LCD/OLED panels or dedicated research panels via DisplayPort/HDMI (FreeSync/G-Sync compatible) thanks to PTB.
+
+> [!info]
+> PTB has excellent hardware support, and many other hardware can be interfaced with. For example, if you want to linearise the gamma of the display, we can connect to professional colorimeters / spectrophotometers for display calibration etc.
 
 
 # Dependencies & Installing\index{Installation}
@@ -133,7 +144,7 @@ flowchart TD
     end
 
     subgraph Media[Media Stack]
-        OBS[OBS Studio Flatpak]
+        OBS[OBS Studio -- Flatpak]
         MTX[MediaMTX]
     end
 ```
@@ -213,7 +224,7 @@ ansible-galaxy collection install ansible.posix
 
 ### MATLAB Dependencies
 
-Most of these MATLAB toolboxes are not strictly required but recommended for full CageLab operation:\index{MATLAB!toolboxes}
+These MATLAB toolboxes are not strictly required but they are what we normally install:\index{MATLAB!toolboxes}
 
 | Toolbox | Purpose |
 |---------|---------|
@@ -230,22 +241,22 @@ All are installable via MPM on Linux:
 
 ```bash
 products='MATLAB Curve_Fitting_Toolbox Instrument_Control_Toolbox Optimization_Toolbox Parallel_Computing_Toolbox Signal_Processing_Toolbox Statistics_and_Machine_Learning_Toolbox'
-mpm install --release=R2025b --products=$products
+mpm install --release=R2026a --products=$products
 ```
 
 ### Code Repository Structure
 
-All CageLab code is version-controlled via Git, synced from Github (where we do main development) to Gitee (accessible from behind the Great Firewall). The Gitee repositories: \index{Gitee}
+All CageLab code is version-controlled via Git, and synced from Github (where we do our main development) to Gitee (accessible from behind the Great Firewall). The Gitee repositories: \index{Gitee}
 
 | Repository | URL | Purpose |
 |------------|-----|---------|
-| CageLab-Code | `https://gitee.com/CogPlatform/CageLab-Code.git` | Main CageLab codebase |
-| Psychtoolbox | `https://gitee.com/CogPlatform/Psychtoolbox.git` | PTB-3 fork\index{Psychtoolbox-3} |
-| opticka | `https://gitee.com/CogPlatform/opticka.git` | Core stimulus/task framework\index{opticka} |
-| matmoteGO | `https://gitee.com/CogPlatform/matmoteGO.git` | MATLAB ØMQ client\index{matmoteGO} |
-| PTBSimia | `https://gitee.com/CogPlatform/PTBSimia.git` | Reward pump interface\index{PTBSimia} |
-| matlab-jzmq | `https://gitee.com/CogPlatform/matlab-jzmq.git` | Java ØMQ bindings for MATLAB\index{matlab-jzmq} |
-| PacmanTask | `https://gitee.com/CogPlatform/PacmanTask.git` | Task-specific code\index{PacmanTask} |
+| CageLab-Code | <https://gitee.com/CogPlatform/CageLab-Code.git> | Main CageLab codebase |
+| Psychtoolbox | <https://gitee.com/CogPlatform/Psychtoolbox.git> | PTB-3 fork\index{Psychtoolbox-3} |
+| opticka | <https://gitee.com/CogPlatform/opticka.git> | Core stimulus/task framework\index{opticka} |
+| matmoteGO | <https://gitee.com/CogPlatform/matmoteGO.git> | MATLAB ØMQ client\index{matmoteGO} |
+| PTBSimia | <https://gitee.com/CogPlatform/PTBSimia.git> | Reward pump interface\index{PTBSimia} |
+| matlab-jzmq | <https://gitee.com/CogPlatform/matlab-jzmq.git> | Java ØMQ bindings for MATLAB\index{matlab-jzmq} |
+| PacmanTask | <https://gitee.com/CogPlatform/PacmanTask.git> | Task-specific code\index{PacmanTask} |
 : The Git Repositories []{#tbl:repositories}
 
 # Network Setup \index{Network setup}
@@ -256,7 +267,10 @@ All CageLab code is version-controlled via Git, synced from Github (where we do 
 
 CageLab requires reliable network connectivity between the Control-PC and all CageLab-Boxes. This chapter covers the three networking layers: NetBird VPN, SSH, and NoMachine remote desktop.
 
-```{.mermaid #fig:comms caption="Multi-CageLab communication" export_scale=5 width=100%}
+> [!warning]
+> You do not need Netbird, and can run CageLab over a local-only network for some limited security. We recommend Netbird as it provides a second layer of security. The cost is a somewhat more involved setup. 
+
+```{.mermaid #fig:comms caption="Recommended Multi-CageLab communication" export_scale=5 width=100%}
 flowchart TD
     subgraph CP[Control-PC]
         A[Experimenter]
@@ -293,13 +307,15 @@ flowchart TD
     CG2 <--> TC2
 ```
 
+For setup you should ensure you set up SSH using a password first, then you can add an SSH key, then install Nomachine and finally Netbird. You must then setup SSH and Nomachine to use the Netbird IP for maximum protection.
+
 ## SSH Configuration \index{SSH}
 
 SSH is a primary command-line interface to each CageLab-Box. Key-based authentication avoids password prompts, and can be used both for `ssh` from the terminal and the visual remote desktop Nomachine.
 
 ### Creating SSH Keys \index{SSH!key generation}
 
-SSH keys are more secure than using passwords, and also more convenient. There are two parts to a SSH key, a private and public key. The private key is kept ONLY on the Control-PC and must be kept private and not shared to unauthorised people. The public key should be installed on all CageLabs. On the Control-PC:
+SSH keys are more secure than using passwords, and also more convenient. You can even add a pass-phrase to an SSH key if you are particularly concerned (we don't tend to do that, as it can complicate some automations). There are two parts to a SSH key, a **private** and **public** key. The **private** key is kept **ONLY** on the **Control-PC** and *must be kept private* and not shared to unauthorised people. The public key can be installed on all CageLabs. On the Control-PC:
 
 ```bash
 ssh-keygen -t ed25519 -f ~/.ssh/cagelab -C "cagelab-control"
@@ -340,7 +356,7 @@ NETBIRD_SETUP_KEY=your-key ansible-playbook -l cagelab -K ansible/playbooks/inst
 -   **View connected peers**: `netbird status`
 -   **Access a box via its NetBird IP**: Once connected, each box gets a stable VPN IP (e.g., `100.112.x.x` or IPv6 `fd00:1:1::x`), and a hostname like `cagelab-001.cloud.lab` reachable from any other peer in the mesh.
 
-### SSH Config (~/.ssh/config) {#sshconfig}
+### Devices Config (~/.ssh/config) {#sshconfig}
 
 `makelinks.sh` symlinks a pre-configured SSH config from `setup/config/sshconfig`. You MUST edit this to be relelvant to your devices and network:
 
@@ -404,132 +420,16 @@ cp ~/.ssh/cagelab.pub .nx/config/authorized.crt
 
 Use the NoMachine client (available on macOS, Windows, and Linux) and connect to the CageLab-Box's IP/hostname on port `4000`, using the private part of the SSH key you set up. The LightDM autologin playbook (`install_lightdm_autologin.yaml`) ensures the desktop session starts automatically on boot\index{LightDM}.
 
-# Using Ansible for Group Maintenance \index{Ansible!group maintenance}
+# Managing Running CageLab Services
 
 ```{=typst}
 #minitoc
 ```
 
-Ansible is an Infrastructure-as-Code tool that lets you run commands, deploy software, and enforce configuration across all your CageLab-Boxes simultaneously. This is essential when managing 5--50+ experimental rigs.
+Each CageLab-Box runs several `systemd` user services\index{Services!managing} that must be kept alive for the system to function. This chapter covers the service lifecycle: startup, monitoring, restarting, and stopping\index{systemd!user services}.
 
-## Setup
-
-On the Control-PC:
-
-```bash
-uv tool install ansible
-ansible-galaxy collection install ansible.posix
-```
-
-Then link the CageLab Ansible configuration:
-
-```bash
-~/Code/CageLab-Code/setup/makelinks.sh -c
-```
-
-This symlinks `ansible.cfg` to `/etc/ansible/ansible.cfg` and the inventory to `/etc/ansible/hosts`.
-
-## The Inventory \index{Ansible!inventory}
-
-The inventory (`ansible/inventory/hosts`) defines groups of CageLab-Boxes with their network addresses and SSH credentials, for our use for example:
-
-| Group | Typical Use | Access Method |
-|-------|-------------|---------------|
-| `cagelab` | Dev + production boxes | DNS (`*.cloud.lab`) |
-| `cagelab_ip` | Same boxes, raw IPs | IP address |
-| `cagelab_songjiang` | Songjiang lab boxes | DNS |
-| `cagelab_pacman` | Pacman task boxes | DNS |
-| `cagelab_prisys` | Primate Systems boxes | DNS |
-| `cagelab_test` | Single test/dev box | DNS |
-| `admin` | Control-PCs, admin hosts | DNS |
-: Default groups []{#tbl:groups}
-
-Edit the inventory to match your own hosts and IPs. You can also add `mac_address` variables for Wake-on-LAN support. \index{Wake-on-LAN} \index{Wake-on-LAN!configuration}
-
-## Playbook Reference
-
-All playbooks live in `ansible/playbooks/`. Run them with:
-
-```bash
-ansible-playbook -l <group> [-K] [-e "variable=value"] playbooks/<name>.yaml
-```
-
-Where:
-- `-l <group>` limits execution to a specific inventory group
-- `-K` / `--ask-become-pass` prompts for the sudo password
-- `-e` passes extra variables
-
-| Playbook | Purpose | Requires sudo |
-|----------|---------|:---:|
-| `update.yaml` | Full system update: repos, cogmoteGO, pixi, mediamtx, OBS. Skips if task running. | Yes |
-| `reset_code.yaml` | Force-reset all code repos to upstream HEAD (discards local changes). | No |
-| `check_api_status.yaml` | Check if cogmoteGO reports a running task and show latest broadcast data. | No |
-| `services-start.yaml` | Start all user systemd services. | Yes |
-| `services-stop.yaml` | Stop all user systemd services. | Yes |
-| `chrony_slave.yaml` | Configure NTP slave to a master clock. Set `chrony_master_ip` env var. | Yes |
-| `install_i3.yaml` | Install i3 window manager. | Yes |
-| `install_lightdm_autologin.yaml` | Install LightDM with autologin to i3. | Yes |
-| `install_netbird.yaml` | Install NetBird VPN and optionally provision with setup key. | Yes |
-| `install_nomachine.yaml` | Install latest NoMachine. | Yes |
-| `enable_wol.yaml` | Enable Wake-on-LAN on all ethernet interfaces. | Yes |
-| `wol.yaml` | Send WoL magic packet to wake specified group. | No |
-| `setup_matlab_startup.yaml` | Configure MATLAB startup script. | No |
-| `upgrade-apt.yaml` | APT package upgrade only. | Yes |
-| `apt_mirror.yaml` | Switch APT to a specific mirror. | Yes |
-: Ansible playbooks []{#tbl:playbooks}
-
-### Example Commands
-
-Full update on all CageLab boxes (asks for sudo password once):
-
-```bash
-ansible-playbook --limit cagelab --ask-become-pass playbooks/update.yaml
-```
-
-Check if any CageLab box is running a task:
-
-```bash
-ansible-playbook -l cagelab playbooks/check_api_status.yaml
-```
-
-Stop all services across all boxes:
-
-```bash
-ansible-playbook -l cagelab -K playbooks/services-stop.yaml
-```
-
-Wake all pacman boxes:
-
-```bash
-ansible-playbook -e "wol_group=cagelab_pacman" playbooks/wol.yaml
-```
-
-### The Update Playbook in Detail
-
-The `update.yaml` playbook is the most comprehensive. It:
-
-1.  Queries `cogmoteGO`'s status API --- if a task is running, it skips the box.
-2.  Ensures `/usr/local/bin` is writable and home directory ownership is correct.
-3.  Updates APT cache if stale.
-4.  Force-pulls all 7 code repositories to latest HEAD (parallel async).
-5.  Runs `makelinks.sh` to refresh symlinks.
-6.  Stops CageLab services.
-7.  Downloads and runs the `cogmoteGO` installer.
-8.  Updates `pixi` and its global packages.
-9.  Updates `mediamtx` via `eget`.
-10. Updates OBS Studio via Flatpak.
-11. Starts CageLab services.
-
-The entire process is idempotent and safe to run regularly (e.g., weekly).
-
-
-# Managing Running Services \index{Services!managing}
-
-```{=typst}
-#minitoc
-```
-
-Each CageLab-Box runs several `systemd` user services that must be kept alive for the system to function. This chapter covers the service lifecycle: startup, monitoring, restarting, and stopping\index{systemd!user services}.
+> [!info]
+> For most of this section, the commands are run via `ssh` on the **CageLab-Box**. See section [](#ansible) for how to use `ansible` to run blocks of remote command *from* the **Control-PC**.
 
 ## Service Architecture
 
@@ -638,9 +538,9 @@ The `cagelab-monitor` command launches a tmuxp session with three panes\index{tm
 
 The tmuxp config is at `~/.config/tmuxp/cagelab-monitor.yaml` and is symlinked by `makelinks.sh`.
 
-## touchscreen Management \index{Touchscreen!management}
+## touchscreen Management
 
-The `toggleInput` script enables or disables touchscreen devices via `xinput`. This is critical: subjects must not interact with the OS desktop.
+The `toggleInput` script enables or disables touchscreen devices via `xinput`. This is critical: subjects must not interact with the OS desktop\index{Touchscreen!management}.
 
 ```bash
 toggleInput disable              # disable default device (ILITEK-TP)
@@ -706,14 +606,132 @@ cagepull -j 4 -l ~/experiment-data -s cagelab@cagelab-001 OptickaData
 
 Both scripts use `rsync` over SSH with robust retry, progress reporting, `--mkpath` auto-detection, and optional dry-run mode.
 
-
-# Using the CageLab GUI \index{CageLab GUI!usage}
+# Using Ansible for Maintenance {#ansible} 
 
 ```{=typst}
 #minitoc
 ```
 
-The CageLab GUI is the experimenter's primary interface for designing experiments, connecting to boxes, and monitoring sessions. It runs inside MATLAB on the Control-PC.
+Ansible is an Infrastructure-as-Code tool that lets you run commands, deploy software, and enforce configuration across all your CageLab-Boxes simultaneously. This is essential when managing 5--50+ experimental rigs.
+
+## Setup
+
+We use `pixi` to install our main software dependencies; `uv` is installed by `pixi` so should already be available. On the Control-PC:
+
+```bash
+uv tool install ansible
+ansible-galaxy collection install ansible.posix
+```
+
+Then link the CageLab Ansible configuration:
+
+```bash
+~/Code/CageLab-Code/setup/makelinks.sh -c
+```
+
+This symlinks `ansible.cfg` to `/etc/ansible/ansible.cfg` and the inventory to `/etc/ansible/hosts`.
+
+## The Inventory 
+
+The inventory\index{Ansible!inventory} (`ansible/inventory/hosts`) defines groups of CageLab-Boxes with their network addresses and SSH credentials, for our use for example:
+
+| Group | Typical Use | Access Method |
+|-------|-------------|---------------|
+| `cagelab` | Dev + production boxes | DNS (`*.cloud.lab`) |
+| `cagelab_ip` | Same boxes, raw IPs | IP address |
+| `cagelab_songjiang` | Songjiang lab boxes | DNS |
+| `cagelab_pacman` | Pacman task boxes | DNS |
+| `cagelab_prisys` | Primate Systems boxes | DNS |
+| `cagelab_test` | Single test/dev box | DNS |
+| `admin` | Control-PCs, admin hosts | DNS |
+: Default groups []{#tbl:groups}
+
+Edit the inventory to match your own hosts and IPs. You can also add `mac_address` variables for Wake-on-LAN support. \index{Wake-on-LAN} \index{Wake-on-LAN!configuration}
+
+## Playbook Reference
+
+All playbooks live in `ansible/playbooks/`. Run them with:
+
+```bash
+ansible-playbook -l <group> [-K] [-e "variable=value"] playbooks/<name>.yaml
+```
+
+Where:
+- `-l <group>` limits execution to a specific inventory group
+- `-K` / `--ask-become-pass` prompts for the sudo password
+- `-e` passes extra variables
+
+| Playbook | Purpose | Requires sudo |
+|----------|---------|:---:|
+| `update.yaml` | Full system update: repos, cogmoteGO, pixi, mediamtx, OBS. **Skips update if a task running.** | Yes |
+| `reset_code.yaml` | Force-reset all code repos to upstream HEAD (**discards local changes**). | No |
+| `check_api_status.yaml` | Check if cogmoteGO reports a running task and show latest broadcast data. | No |
+| `services-start.yaml` | Start all user systemd services. | Yes |
+| `services-stop.yaml` | Stop all user systemd services. | Yes |
+| `chrony_slave.yaml` | Configure NTP slave to a master clock. Set `chrony_master_ip` env var. to select which system becomes the master. `chrony` keeps all system clocks in sync within a few milliseconds of each other. | Yes |
+| `install_i3.yaml` | Install i3 window manager. | Yes |
+| `install_lightdm_autologin.yaml` | Install LightDM with autologin to i3. | Yes |
+| `install_netbird.yaml` | Install NetBird VPN and optionally provision with setup key. | Yes |
+| `install_nomachine.yaml` | Install latest NoMachine. | Yes |
+| `enable_wol.yaml` | Enable Wake-on-LAN on all ethernet interfaces. | Yes |
+| `wol.yaml` | Send WoL magic packet to wake specified group. | No |
+| `setup_matlab_startup.yaml` | Configure MATLAB startup script. | No |
+| `upgrade-apt.yaml` | APT package upgrade only. | Yes |
+| `apt_mirror.yaml` | Switch APT to a specific mirror (our config uses Tsingnhua University). | Yes |
+: Ansible playbooks []{#tbl:playbooks}
+
+### Example Commands
+
+Full update on all CageLab boxes (asks for sudo password once):
+
+```bash
+ansible-playbook --limit cagelab --ask-become-pass playbooks/update.yaml
+```
+
+Check if any CageLab box is running a task:
+
+```bash
+ansible-playbook -l cagelab playbooks/check_api_status.yaml
+```
+
+Stop all services across all boxes:
+
+```bash
+ansible-playbook -l cagelab -K playbooks/services-stop.yaml
+```
+
+Wake all pacman boxes:
+
+```bash
+ansible-playbook -e "wol_group=cagelab_pacman" playbooks/wol.yaml
+```
+
+### The Update Playbook in Detail
+
+The `update.yaml` playbook is the most comprehensive. It:
+
+1.  Queries `cogmoteGO`'s status API --- if a task is running, it skips the box.
+2.  Ensures `/usr/local/bin` is writable and home directory ownership is correct.
+3.  Updates APT cache if stale.
+4.  Force-pulls all 7 code repositories to latest HEAD (parallel async).
+5.  Runs `makelinks.sh` to refresh symlinks.
+6.  Stops CageLab services.
+7.  Downloads and runs the `cogmoteGO` installer.
+8.  Updates `pixi` and its global packages.
+9.  Updates `mediamtx` via `eget`.
+10. Updates OBS Studio via Flatpak.
+11. Starts CageLab services.
+
+The entire process is idempotent and safe to run regularly (e.g., weekly).
+
+
+# Using the CageLab GUI 
+
+```{=typst}
+#minitoc
+```
+
+The CageLab GUI\index{CageLab GUI!usage} is the experimenter's primary interface for designing experiments, connecting to boxes, and monitoring sessions. It runs inside MATLAB on the Control-PC.
 
 ![Main CageLab GUI](Images/cagelab-gui.png)
 
