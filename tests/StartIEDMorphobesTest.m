@@ -9,12 +9,15 @@
 %> therefore requires PTB and an X11 display; these are split into:
 %>
 %>   - CI-safe tests (no PTB): entry-point contract, checkInput defaults,
-%>     source-level stage coverage, dimension config validation, and
-%>     dataset resolution — every (shape, colour, appendage, texture,
-%>     exemplar) combination referenced by the task config must resolve to
-%>     exactly one metadata row whose PNG file exists on disk. These run
-%>     against a synthetic fixture so they are deterministic, plus against
-%>     the real resources/morphobes dataset when it is present.
+%>     source-level stage coverage, the clutil.iedMorphobesConfig
+%>     settings/metaTable-driven per-set specification (intra + extra
+%>     dimension levels, distractor policy, exemplars), and dataset
+%>     resolution — every morphobe sample the task can present must
+%>     resolve to exactly one metadata row whose PNG file exists on disk.
+%>     These run against a synthetic fixture (using the REAL dataset level
+%>     encodings, e.g. shape 0,1,2,4,7,8,11 — not contiguous) so they are
+%>     deterministic, plus against the real resources/morphobes dataset
+%>     when it is present.
 %>
 %>   - hardware tests (PTB window): run the actual task for real with dummy
 %>     touch/audio/reward managers, inject Escape via xdotool to terminate
@@ -24,7 +27,6 @@
 %>
 %> Run with:
 %>   >> runtests('tests/StartIEDMorphobesTest.m')
-%>   >> runtests('tests/StartIEDMorphobesTest.m', '-ExcludeTag', 'hardware')
 %>
 %> Copyright (c) 2026 Ian Max Andolina — LGPL3, see LICENCE.md
 % ========================================================================
@@ -89,7 +91,7 @@ classdef StartIEDMorphobesTest < matlab.unittest.TestCase
 		end
 
 		% ===================================================================
-		%> @brief checkInput defaults for the classic 'ied' task type.
+		%> @brief checkInput defaults for the classic 'ied' task type (2D).
 		% ===================================================================
 		function testCheckInputIedDefaults(testCase)
 			in = clutil.checkInput(struct('task', 'ied'));
@@ -101,6 +103,13 @@ classdef StartIEDMorphobesTest < matlab.unittest.TestCase
 			verifyEqual(testCase, in.edDimension, 'shape', 'ED dim shape');
 			verifyEqual(testCase, in.criterion, 6, 'criterion default');
 			verifyEqual(testCase, in.maxIncorrect, 50, 'maxIncorrect default');
+			verifyFalse(testCase, in.distractors, ...
+				'2D defaults to neutral distractors (classic simple discrimination)');
+			verifyTrue(testCase, in.randomiseDistractors, ...
+				'randomiseDistractors defaults true');
+			verifyEqual(testCase, in.distractorOne, 0, 'distractorOne default');
+			verifyEqual(testCase, in.distractorTwo, 0, 'distractorTwo default');
+			verifyFalse(testCase, in.useExemplars, '2D defaults to no exemplars');
 		end
 
 		% ===================================================================
@@ -111,16 +120,23 @@ classdef StartIEDMorphobesTest < matlab.unittest.TestCase
 			verifyEqual(testCase, in.numTargets, 2);
 			verifyEqual(testCase, string(in.taskType), ...
 				"sd cd cr ids idr eds edr");
+			verifyFalse(testCase, in.distractors);
+			verifyFalse(testCase, in.useExemplars);
 		end
 
 		% ===================================================================
-		%> @brief checkInput maps ied-4 to four targets.
+		%> @brief checkInput maps ied-4 to four targets (4D compound defaults).
 		% ===================================================================
 		function testCheckInputIed4Defaults(testCase)
 			in = clutil.checkInput(struct('task', 'ied-4'));
 			verifyEqual(testCase, in.numTargets, 4);
 			verifyEqual(testCase, string(in.taskType), ...
 				"sd cd cr ids idr eds edr");
+			verifyTrue(testCase, in.distractors, ...
+				'4D defaults to shown (compound) distractors');
+			verifyTrue(testCase, in.randomiseDistractors);
+			verifyTrue(testCase, in.useExemplars, ...
+				'4D defaults to per-trial exemplars');
 		end
 
 		% ===================================================================
@@ -134,11 +150,15 @@ classdef StartIEDMorphobesTest < matlab.unittest.TestCase
 				'numTargets=4 with task=ied must be preserved');
 			verifyEqual(testCase, in.objectSize, 8, ...
 				'4D sizing applies when numTargets=4');
+			verifyTrue(testCase, in.distractors, ...
+				'4D distractor defaults apply when numTargets=4');
 
 			in2 = clutil.checkInput(struct('task', 'ied', 'numTargets', 2));
 			verifyEqual(testCase, in2.numTargets, 2);
 			verifyEqual(testCase, in2.objectSize, 10, ...
 				'2D sizing applies when numTargets=2');
+			verifyFalse(testCase, in2.distractors, ...
+				'2D distractor defaults apply when numTargets=2');
 		end
 
 		% ===================================================================
@@ -166,6 +186,26 @@ classdef StartIEDMorphobesTest < matlab.unittest.TestCase
 		end
 
 		% ===================================================================
+		%> @brief User-supplied distractor/exemplar parameters must NOT be
+		%> overwritten by the task defaults.
+		% ===================================================================
+		function testCheckInputIedRespectsUserDistractorParams(testCase)
+			in = clutil.checkInput(struct('task', 'ied-4', ...
+				'distractors', false, 'randomiseDistractors', false, ...
+				'distractorOne', 3, 'distractorTwo', 2, 'useExemplars', false));
+			verifyFalse(testCase, in.distractors, ...
+				'distractors=false must be preserved');
+			verifyFalse(testCase, in.randomiseDistractors, ...
+				'randomiseDistractors=false must be preserved');
+			verifyEqual(testCase, in.distractorOne, 3, ...
+				'distractorOne must be preserved');
+			verifyEqual(testCase, in.distractorTwo, 2, ...
+				'distractorTwo must be preserved');
+			verifyFalse(testCase, in.useExemplars, ...
+				'useExemplars=false must be preserved');
+		end
+
+		% ===================================================================
 		%> @brief clutil.normaliseDimension handles plurals, case and
 		%> whitespace variants of the four morphobes dimensions.
 		% ===================================================================
@@ -188,14 +228,31 @@ classdef StartIEDMorphobesTest < matlab.unittest.TestCase
 		end
 
 		% ===================================================================
-		%> @brief The task source uses the normaliseDimension helper and
-		%> the EDS/EDR stage switches to the configured ED dimension.
+		%> @brief The task source uses the metaTable-driven config helper and
+		%> the new distractor/exemplar parameters.
 		% ===================================================================
-		function testSourceUsesEDDimensionForShift(testCase)
+		function testSourceUsesConfigHelper(testCase)
 			source = fileread(which('cltasks.startIEDmorphobes'));
 			verifyTrue(testCase, contains(source, 'clutil.normaliseDimension'));
-			verifyTrue(testCase, contains(source, 'relDim = in.edDimension'));
-			verifyTrue(testCase, contains(source, 'relDim = in.idDimension'));
+			verifyTrue(testCase, contains(source, 'iedMorphobesConfig(in, metaTable)'), ...
+				'config must be built from settings + metadata');
+			verifyTrue(testCase, contains(source, 'setCfg = config.sets(setNum)'), ...
+				'trial loop must pull the per-set specification');
+			verifyTrue(testCase, contains(source, 'setCfg.relLevels'));
+		end
+
+		% ===================================================================
+		%> @brief The task source implements all five distractor/exemplar
+		%> parameters.
+		% ===================================================================
+		function testSourceHasDistractorParameters(testCase)
+			source = fileread(which('cltasks.startIEDmorphobes'));
+			params = {'distractors', 'randomiseDistractors', ...
+				'distractorOne', 'distractorTwo', 'useExemplars'};
+			for p = params
+				verifyTrue(testCase, contains(source, p{1}), ...
+					['missing parameter in source: ' p{1}]);
+			end
 		end
 
 		% ===================================================================
@@ -207,16 +264,6 @@ classdef StartIEDMorphobesTest < matlab.unittest.TestCase
 			verifyTrue(testCase, contains(source, '''['''), ...
 				'source strips brackets from taskType');
 			verifyTrue(testCase, contains(source, 'replace(stages'));
-		end
-
-		% ===================================================================
-		%> @brief EDS/EDR with appendage ED is only meaningful in 4D; the
-		%> source must warn when the ED dimension has constant levels.
-		% ===================================================================
-		function testSourceWarnsConstantEDDimension(testCase)
-			source = fileread(which('cltasks.startIEDmorphobes'));
-			verifyTrue(testCase, contains(source, 'ConstantEDDimension'));
-			verifyTrue(testCase, contains(source, 'numTargets=4'));
 		end
 
 		% ===================================================================
@@ -232,15 +279,6 @@ classdef StartIEDMorphobesTest < matlab.unittest.TestCase
 		end
 
 		% ===================================================================
-		%> @brief The task supports both 2D and 4D via numTargets.
-		% ===================================================================
-		function testSourceHasNumTargetsHandling(testCase)
-			source = fileread(which('cltasks.startIEDmorphobes'));
-			verifyTrue(testCase, contains(source, 'numTargets'));
-			verifyTrue(testCase, contains(source, 'iedMorphobesConfig'));
-		end
-
-		% ===================================================================
 		%> @brief The task uses a 5-parameter PNG lookup against metadata.
 		% ===================================================================
 		function testSourceHasLookupPNG(testCase)
@@ -251,67 +289,270 @@ classdef StartIEDMorphobesTest < matlab.unittest.TestCase
 		end
 
 		% ===================================================================
-		%> @brief 2D config: two levels per set for shape + colour.
-		% ===================================================================
-		function testConfig2DLevels(testCase)
-			config = clutil.iedMorphobesConfig(2);
-
-			verifyEqual(testCase, config.dimLevels.shape, [3 6; 1 5; 0 7]);
-			verifyEqual(testCase, config.dimLevels.colour, [0 1; 2 4; 6 7]);
-			verifyEqual(testCase, config.dimLevels.appendage, zeros(3,2));
-			verifyEqual(testCase, config.dimLevels.texture, zeros(3,2));
-			verifyEqual(testCase, config.setExemplars, [0 0 0]);
-		end
-
-		% ===================================================================
-		%> @brief 4D config: four levels per set across all four dimensions.
-		% ===================================================================
-		function testConfig4DLevels(testCase)
-			config = clutil.iedMorphobesConfig(4);
-
-			verifyEqual(testCase, config.dimLevels.shape, [0 1 2 3; 4 5 6 7; 0 1 2 3]);
-			verifyEqual(testCase, config.dimLevels.colour, [0 1 2 3; 4 5 6 7; 0 1 2 3]);
-			verifyEqual(testCase, config.dimLevels.appendage, repmat(0:3, 3, 1));
-			verifyEqual(testCase, config.dimLevels.texture, repmat(0:3, 3, 1));
-			verifyEqual(testCase, config.setExemplars, [0 1 2]);
-		end
-
-		% ===================================================================
 		%> @brief The config helper rejects unsupported target counts.
 		% ===================================================================
 		function testConfigRejectsInvalidTargets(testCase)
-			verifyError(testCase, @() clutil.iedMorphobesConfig(3), ...
-				'MATLAB:validators:mustBeMember');
-			verifyError(testCase, @() clutil.iedMorphobesConfig(0), ...
-				'MATLAB:validators:mustBeMember');
+			meta = testCase.readMetadata(testCase.fixtureDir);
+			verifyError(testCase, @() clutil.iedMorphobesConfig(struct('numTargets', 3), meta), ...
+				'iedMorphobesConfig:InvalidNumTargets');
+			verifyError(testCase, @() clutil.iedMorphobesConfig(struct('numTargets', 0), meta), ...
+				'iedMorphobesConfig:InvalidNumTargets');
 		end
 
 		% ===================================================================
-		%> @brief Every 2D config combo resolves in the synthetic fixture.
+		%> @brief The config rejects identical ID/ED dimensions.
+		% ===================================================================
+		function testConfigRejectsSameDimensions(testCase)
+			meta = testCase.readMetadata(testCase.fixtureDir);
+			in = testCase.makeInput(4);
+			in.idDimension = 'colour';
+			in.edDimension = 'colour';
+			verifyError(testCase, @() clutil.iedMorphobesConfig(in, meta), ...
+				'iedMorphobesConfig:SameDimensions');
+		end
+
+		% ===================================================================
+		%> @brief 2D config structure: colour is ID (sets 1-2), shape is ED
+		%> (set 3), non-relevant dims neutral, exemplar fixed at 0.
+		% ===================================================================
+		function testConfig2DStructure(testCase)
+			meta = testCase.readMetadata(testCase.fixtureDir);
+			in = testCase.makeInput(2);
+			config = clutil.iedMorphobesConfig(in, meta);
+
+			verifyEqual(testCase, config.numTargets, 2);
+			verifyEqual(testCase, config.idDimension, 'colour');
+			verifyEqual(testCase, config.edDimension, 'shape');
+			verifyFalse(testCase, config.distractors);
+			verifyFalse(testCase, config.useExemplars);
+			verifyEqual(testCase, sort(config.distractorDims), ...
+				{'appendage', 'texture'}, 'non-ID/ED dims are the distractors');
+
+			for s = 1:3
+				setCfg = config.sets(s);
+				if s <= 2
+					verifyEqual(testCase, setCfg.relDim, 'colour', ...
+						['ID dim relevant in set ' num2str(s)]);
+				else
+					verifyEqual(testCase, setCfg.relDim, 'shape', ...
+						'ED dim relevant in set 3');
+				end
+				verifyEqual(testCase, numel(setCfg.relLevels), 2, ...
+					'two levels per set in 2D');
+				verifyTrue(testCase, numel(unique(setCfg.relLevels)) == 2, ...
+					'relLevels must be distinct');
+				verifyEqual(testCase, setCfg.exemplar, 0, ...
+					'exemplar fixed at 0 when useExemplars=false');
+				for k = 1:numel(setCfg.nonRelevantDims)
+					verifyEqual(testCase, setCfg.distractorValues{k}, [0 0], ...
+						['neutral distractor values in set ' num2str(s)]);
+				end
+			end
+		end
+
+		% ===================================================================
+		%> @brief 4D config structure: all four dimensions active, distractor
+		%> pools from the dataset, per-trial exemplar pool.
+		% ===================================================================
+		function testConfig4DStructure(testCase)
+			meta = testCase.readMetadata(testCase.fixtureDir);
+			in = testCase.makeInput(4);
+			config = clutil.iedMorphobesConfig(in, meta);
+
+			verifyEqual(testCase, config.numTargets, 4);
+			verifyTrue(testCase, config.distractors);
+			verifyTrue(testCase, config.randomiseDistractors);
+			verifyTrue(testCase, config.useExemplars);
+
+			for s = 1:3
+				setCfg = config.sets(s);
+				verifyEqual(testCase, numel(setCfg.relLevels), 4, ...
+					'four levels per set in 4D');
+				verifyTrue(testCase, numel(unique(setCfg.relLevels)) == 4, ...
+					'relLevels must be distinct');
+				verifyEqual(testCase, numel(setCfg.nonRelevantDims), 3, ...
+					'three non-relevant dims per set (incl. the other ID/ED dim)');
+				for k = 1:numel(setCfg.nonRelevantDims)
+					dim = setCfg.nonRelevantDims{k};
+					verifyEqual(testCase, setCfg.distractorPools{k}, ...
+						config.available.(dim), ...
+						['distractor pool must be the dataset levels for ' dim]);
+				end
+				verifyEqual(testCase, setCfg.exemplarPool, [0 1 2 3], ...
+					'exemplar pool from dataset');
+			end
+		end
+
+		% ===================================================================
+		%> @brief The config derives levels from the metaTable, so it must
+		%> match the actual (non-contiguous) dataset level encodings. This is
+		%> the regression test for the old hardcoded matrices that referenced
+		%> levels missing from the procedural dataset (e.g. shape 3/5/6,
+		%> colour 4/5, appendage 3).
+		% ===================================================================
+		function testConfigAvailableMatchesDataset(testCase)
+			meta = testCase.readMetadata(testCase.fixtureDir);
+			in = testCase.makeInput(4);
+			config = clutil.iedMorphobesConfig(in, meta);
+
+			verifyEqual(testCase, config.available.shape, [0 1 2 4 7 8 11], ...
+				'shape levels match the dataset catalogue');
+			verifyEqual(testCase, config.available.colour, [0 1 2 3 6 7], ...
+				'colour levels match the dataset catalogue');
+			verifyEqual(testCase, config.available.appendage, [0 1 2 4 5], ...
+				'appendage levels match the dataset catalogue');
+			verifyEqual(testCase, config.available.texture, [0 1 2 3 4], ...
+				'texture levels match the dataset catalogue');
+		end
+
+		% ===================================================================
+		%> @brief distractors=false holds every non-relevant dimension
+		%> neutral, regardless of the fixed values.
+		% ===================================================================
+		function testConfigDistractorsOff(testCase)
+			meta = testCase.readMetadata(testCase.fixtureDir);
+			in = testCase.makeInput(4);
+			in.distractors = false;
+			in.randomiseDistractors = true; % must be ignored
+			in.distractorOne = 2;
+			in.distractorTwo = 1;
+			config = clutil.iedMorphobesConfig(in, meta);
+
+			for s = 1:3
+				setCfg = config.sets(s);
+				for k = 1:numel(setCfg.nonRelevantDims)
+					verifyEqual(testCase, setCfg.distractorValues{k}, ...
+						zeros(1, 4), ['neutral distractors in set ' num2str(s)]);
+					verifyTrue(testCase, isempty(setCfg.distractorPools{k}), ...
+						'no pools when distractors=false');
+				end
+			end
+		end
+
+		% ===================================================================
+		%> @brief distractors=true + randomiseDistractors=false uses the
+		%> fixed distractorOne/distractorTwo values for the two persistent
+		%> distractors and neutral 0 for the temporarily irrelevant ID/ED dim.
+		% ===================================================================
+		function testConfigDistractorsFixed(testCase)
+			meta = testCase.readMetadata(testCase.fixtureDir);
+			in = testCase.makeInput(4);
+			in.distractors = true;
+			in.randomiseDistractors = false;
+			in.distractorOne = 2;
+			in.distractorTwo = 1;
+			config = clutil.iedMorphobesConfig(in, meta);
+
+			verifyEqual(testCase, config.distractorDims, {'appendage', 'texture'});
+			for s = 1:3
+				setCfg = config.sets(s);
+				for k = 1:numel(setCfg.nonRelevantDims)
+					dim = setCfg.nonRelevantDims{k};
+					if strcmp(dim, 'appendage')
+						verifyEqual(testCase, setCfg.distractorValues{k}, [2 2 2 2], ...
+							'first persistent distractor uses distractorOne');
+					elseif strcmp(dim, 'texture')
+						verifyEqual(testCase, setCfg.distractorValues{k}, [1 1 1 1], ...
+							'second persistent distractor uses distractorTwo');
+					else
+						verifyEqual(testCase, setCfg.distractorValues{k}, [0 0 0 0], ...
+							['temporarily irrelevant ID/ED dim neutral: ' dim]);
+					end
+					verifyTrue(testCase, isempty(setCfg.distractorPools{k}), ...
+						'no pools when randomiseDistractors=false');
+				end
+			end
+		end
+
+		% ===================================================================
+		%> @brief distractors=true + randomiseDistractors=true exposes the
+		%> full dataset level pools for every non-relevant dimension.
+		% ===================================================================
+		function testConfigDistractorsRandom(testCase)
+			meta = testCase.readMetadata(testCase.fixtureDir);
+			in = testCase.makeInput(4);
+			config = clutil.iedMorphobesConfig(in, meta);
+
+			for s = 1:3
+				setCfg = config.sets(s);
+				for k = 1:numel(setCfg.nonRelevantDims)
+					dim = setCfg.nonRelevantDims{k};
+					verifyEqual(testCase, setCfg.distractorPools{k}, ...
+						config.available.(dim));
+				end
+			end
+		end
+
+		% ===================================================================
+		%> @brief useExemplars=false fixes the exemplar; the config warns and
+		%> clamps when the fixed distractor value is not in the dataset.
+		% ===================================================================
+		function testConfigClampsInvalidDistractorValue(testCase)
+			meta = testCase.readMetadata(testCase.fixtureDir);
+			in = testCase.makeInput(4);
+			in.distractors = true;
+			in.randomiseDistractors = false;
+			in.distractorOne = 99; % not a valid appendage level
+			verifyWarning(testCase, ...
+				@() clutil.iedMorphobesConfig(in, meta), ...
+				'iedMorphobesConfig:InvalidDistractorValue');
+			config = clutil.iedMorphobesConfig(in, meta);
+			verifyTrue(testCase, ismember(config.distractorOne, config.available.appendage), ...
+				'clamped value must exist in the dataset');
+		end
+
+		% ===================================================================
+		%> @brief randomiseDistractors is ignored (with a warning) when
+		%> distractors=false.
+		% ===================================================================
+		function testConfigWarnsRandomiseIgnored(testCase)
+			meta = testCase.readMetadata(testCase.fixtureDir);
+			in = testCase.makeInput(4);
+			in.distractors = false;
+			in.randomiseDistractors = true;
+			verifyWarning(testCase, ...
+				@() clutil.iedMorphobesConfig(in, meta), ...
+				'iedMorphobesConfig:RandomiseIgnored');
+		end
+
+		% ===================================================================
+		%> @brief Every 2D config sample resolves in the synthetic fixture.
 		% ===================================================================
 		function testFixtureResolves2D(testCase)
 			meta = testCase.readMetadata(testCase.fixtureDir);
-			testCase.verifyConfigResolves(2, meta, testCase.fixtureDir);
+			testCase.verifyConfigResolves(testCase.makeInput(2), meta, testCase.fixtureDir);
 		end
 
 		% ===================================================================
-		%> @brief Every 4D config combo resolves in the synthetic fixture.
+		%> @brief Every 4D config sample resolves in the synthetic fixture.
 		% ===================================================================
 		function testFixtureResolves4D(testCase)
 			meta = testCase.readMetadata(testCase.fixtureDir);
-			testCase.verifyConfigResolves(4, meta, testCase.fixtureDir);
+			testCase.verifyConfigResolves(testCase.makeInput(4), meta, testCase.fixtureDir);
+		end
+
+		% ===================================================================
+		%> @brief Every 4D fixed-distractor sample resolves in the fixture.
+		% ===================================================================
+		function testFixtureResolves4DFixed(testCase)
+			meta = testCase.readMetadata(testCase.fixtureDir);
+			in = testCase.makeInput(4);
+			in.randomiseDistractors = false;
+			in.distractorOne = 2;
+			in.distractorTwo = 1;
+			testCase.verifyConfigResolves(in, meta, testCase.fixtureDir);
 		end
 
 		% ===================================================================
 		%> @brief The real dataset (when present) satisfies the 2D config.
-		%> This is the regression test that would catch a shape/colour level
-		%> referenced by the config but missing from the shipped metadata.
+		%> This is the regression test that would catch a level referenced by
+		%> the config but missing from the shipped metadata.
 		% ===================================================================
 		function testRealDatasetResolves2D(testCase)
 			assumeTrue(testCase, isfile(testCase.realMetadata), ...
 				'real morphobes dataset not present; skipping');
 			meta = testCase.readMetadata(fileparts(testCase.realMetadata));
-			testCase.verifyConfigResolves(2, meta, fileparts(testCase.realMetadata));
+			testCase.verifyConfigResolves(testCase.makeInput(2), meta, fileparts(testCase.realMetadata));
 		end
 
 		% ===================================================================
@@ -321,7 +562,21 @@ classdef StartIEDMorphobesTest < matlab.unittest.TestCase
 			assumeTrue(testCase, isfile(testCase.realMetadata), ...
 				'real morphobes dataset not present; skipping');
 			meta = testCase.readMetadata(fileparts(testCase.realMetadata));
-			testCase.verifyConfigResolves(4, meta, fileparts(testCase.realMetadata));
+			testCase.verifyConfigResolves(testCase.makeInput(4), meta, fileparts(testCase.realMetadata));
+		end
+
+		% ===================================================================
+		%> @brief The real dataset satisfies the 4D fixed-distractor config.
+		% ===================================================================
+		function testRealDatasetResolves4DFixed(testCase)
+			assumeTrue(testCase, isfile(testCase.realMetadata), ...
+				'real morphobes dataset not present; skipping');
+			meta = testCase.readMetadata(fileparts(testCase.realMetadata));
+			in = testCase.makeInput(4);
+			in.randomiseDistractors = false;
+			in.distractorOne = 2;
+			in.distractorTwo = 1;
+			testCase.verifyConfigResolves(in, meta, fileparts(testCase.realMetadata));
 		end
 
 		% ===================================================================
@@ -370,7 +625,25 @@ classdef StartIEDMorphobesTest < matlab.unittest.TestCase
 	methods (Access = private)
 
 		% ===================================================================
-		%> @brief Build a synthetic morphobes dataset covering both configs.
+		%> @brief Build a minimal task input struct for a config/test run.
+		%> Uses the same defaults as clutil.checkInput for the IED task.
+		% ===================================================================
+		function in = makeInput(testCase, numTargets)
+			in = struct();
+			in.numTargets = numTargets;
+			in.idDimension = 'colour';
+			in.edDimension = 'shape';
+			in.distractors = numTargets == 4;
+			in.randomiseDistractors = true;
+			in.distractorOne = 0;
+			in.distractorTwo = 0;
+			in.useExemplars = numTargets == 4;
+		end
+
+		% ===================================================================
+		%> @brief Build a synthetic morphobes dataset using the REAL level
+		%> encodings (procedural_microorganisms catalogue), so config tests
+		%> are faithful to the shipped dataset.
 		% ===================================================================
 		function fixture = buildFixture(testCase)
 			fixture = tempname;
@@ -381,14 +654,20 @@ classdef StartIEDMorphobesTest < matlab.unittest.TestCase
 			pngPath = fullfile(pngDir, 'microbe_00001.png');
 			imwrite(randi(255, 8, 8, 3, 'uint8'), pngPath);
 
-			% full 4D-style grid: shapes 0-7 x colours 0-7 x appendage 0-3 x
-			% texture 0-3 x exemplars 0-2. This covers both the 2D and 4D
-			% configurations used by iedMorphobesConfig.
-			shapes = 0:7; colours = 0:7; app = 0:3; tex = 0:3; ex = 0:2;
+			% real catalogue levels (non-contiguous):
+			%   shape 0,1,2,4,7,8,11 | colour 0,1,2,3,6,7
+			%   appendage 0,1,2,4,5 | texture 0,1,2,3,4 | exemplar 0-3
+			% Full factorial (7*6*5*5*4 = 4200 rows) — the same structure
+			% as the real dataset, so every config sample resolves.
+			shapes = [0 1 2 4 7 8 11];
+			colours = [0 1 2 3 6 7];
+			app = [0 1 2 4 5];
+			tex = [0 1 2 3 4];
+			ex = 0:3;
 			n = numel(shapes) * numel(colours) * numel(app) * numel(tex) * numel(ex);
-			shapeLv = zeros(n,1); colourLv = zeros(n,1);
-			appLv = zeros(n,1); texLv = zeros(n,1); exLv = zeros(n,1);
-			pngs = strings(n,1);
+			shapeLv = zeros(n, 1); colourLv = zeros(n, 1);
+			appLv = zeros(n, 1); texLv = zeros(n, 1); exLv = zeros(n, 1);
+			pngs = strings(n, 1);
 			idx = 0;
 			for ii = shapes
 				for jj = colours
@@ -405,8 +684,8 @@ classdef StartIEDMorphobesTest < matlab.unittest.TestCase
 				end
 			end
 			T = table(shapeLv, colourLv, appLv, texLv, exLv, pngs, ...
-				'VariableNames', {'shape_level','colour_level', ...
-				'appendage_level','texture_level','exemplar','png_path'});
+				'VariableNames', {'shape_level', 'colour_level', ...
+				'appendage_level', 'texture_level', 'exemplar', 'png_path'});
 			writetable(T, fullfile(fixture, 'metadata.csv'));
 		end
 
@@ -419,28 +698,45 @@ classdef StartIEDMorphobesTest < matlab.unittest.TestCase
 		end
 
 		% ===================================================================
-		%> @brief Verify every config combo resolves to exactly one metadata
-		%> row whose PNG exists, including the neutral (shape 0) SD/SR case.
+		%> @brief Verify every morphobe sample the config can present
+		%> resolves to exactly one metadata row whose PNG exists: every
+		%> relLevel x non-relevant value (pool or fixed) x exemplar combo.
 		% ===================================================================
-		function verifyConfigResolves(testCase, numTargets, meta, folder)
-			config = clutil.iedMorphobesConfig(numTargets);
-			allDims = {'shape','colour','appendage','texture'};
-			for setN = 1:3
-				exemplar = config.setExemplars(setN);
-				for t = 1:numTargets
-					s = config.dimLevels.shape(setN, t);
-					c = config.dimLevels.colour(setN, t);
-					a = config.dimLevels.appendage(setN, t);
-					tx = config.dimLevels.texture(setN, t);
-					testCase.verifyResolves(meta, folder, s, c, a, tx, exemplar, ...
-						sprintf('set %d target %d', setN, t));
+		function verifyConfigResolves(testCase, in, meta, folder)
+			config = clutil.iedMorphobesConfig(in, meta);
+			for s = 1:numel(config.sets)
+				setCfg = config.sets(s);
+				exemplars = setCfg.exemplarPool;
+				if isempty(exemplars)
+					exemplars = setCfg.exemplar;
 				end
-				% SD/SR use neutral distractors (all non-relevant dims = 0);
-				% shape 0 must exist paired with every set colour.
-				if numTargets == 2
-					for c = config.dimLevels.colour(setN, :)
-						testCase.verifyResolves(meta, folder, 0, c, 0, 0, exemplar, ...
-							sprintf('set %d neutral shape 0 colour %d', setN, c));
+				% possible values for each non-relevant dimension
+				nonRelVals = cell(1, numel(setCfg.nonRelevantDims));
+				for k = 1:numel(setCfg.nonRelevantDims)
+					if config.distractors && config.randomiseDistractors
+						nonRelVals{k} = setCfg.distractorPools{k};
+					else
+						nonRelVals{k} = unique(setCfg.distractorValues{k});
+					end
+				end
+				% cross product over non-relevant dims
+				grids = cell(1, numel(nonRelVals));
+				if isempty(nonRelVals)
+					grids = {0};
+				else
+					[grids{:}] = ndgrid(nonRelVals{:});
+				end
+				for lv = setCfg.relLevels
+					for i = 1:numel(grids{1})
+						vals = struct('shape', 0, 'colour', 0, 'appendage', 0, 'texture', 0);
+						for k = 1:numel(setCfg.nonRelevantDims)
+							vals.(setCfg.nonRelevantDims{k}) = grids{k}(i);
+						end
+						for ex = exemplars
+							testCase.verifyResolves(meta, folder, ...
+								vals.shape, vals.colour, vals.appendage, vals.texture, ex, ...
+								sprintf('set %d relDim=%s level=%d', s, setCfg.relDim, lv));
+						end
 					end
 				end
 			end
@@ -477,6 +773,11 @@ classdef StartIEDMorphobesTest < matlab.unittest.TestCase
 			in.taskType = 'sd cd cr ids idr eds edr';
 			in.criterion = 6;
 			in.maxIncorrect = 50;
+			in.distractors = numTargets == 4;
+			in.randomiseDistractors = true;
+			in.distractorOne = 0;
+			in.distractorTwo = 0;
+			in.useExemplars = numTargets == 4;
 			in.objectSize = 8;
 			in.objectSep = 12;
 			in.sampleY = 0;

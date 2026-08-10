@@ -46,7 +46,7 @@ function [r, dt, vblInit] = initTouchTrial(r, in, tM, sM, dt)
 	r.touchInit = '';
 	flush(tM);
 
-	if ~isempty(r.sbg); draw(r.sbg); else; drawBackground(s, in.bg); end
+	if ~isempty(r.sbg); draw(r.sbg); else; drawBackground(sM, in.bg); end
 	vbl = flip(sM); vblInit = vbl + sM.screenVals.ifi;
 	dt.data.times.initStart(r.trialN+1) = vblInit;
 	while isempty(r.touchInit) && vbl < vblInit + 5

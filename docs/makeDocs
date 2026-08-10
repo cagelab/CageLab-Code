@@ -1,8 +1,8 @@
-#!/usr/bin/zsh
+#!/usr/bin/env bash
 
 # some annoying chromium error
 echo 0 | sudo tee /proc/sys/kernel/apparmor_restrict_unprivileged_userns
 
-# run pandoc using the typst-bookly default
+# run pandoc using the typst-bookly default, from https://github.com/iandol/dotpandoc
 pandoc -d typst-bookly -o UserGuide.pdf UserGuide.md
 

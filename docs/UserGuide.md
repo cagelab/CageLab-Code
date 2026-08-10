@@ -1,4 +1,6 @@
 ---
+# we use Pandoc > Typst to produce the PDF. The recipe
+# is available at https://github.com/iandol/dotpandoc/blob/master/defaults/typst-bookly.yaml
 title: "CageLab User Guide"
 subtitle: "Remote Neuroscience Experiments with CageLab"
 author: 
@@ -19,7 +21,7 @@ querverweis: # cross-ref pandoc plugin
 
 # Introduction
 
-CageLab is a modular, network-distributed system for running remote neuroscience behavioural experiments. It separates the **Control-PC** (the experimenter's workstation, usually in an office) from the **CageLab-Box** (the cage-attached computer driving stimuli, touch, reward, and video recording), allowing a single researcher to manage many subjects across multiple cages from one place. \index{CageLab}
+CageLab is a modular, network-distributed system for running remote neuroscience behavioural experiments. It separates the **Control-PC** (the experimenter's workstation, usually in an office) from one or more **CageLab-Box**es (the cage-attached computer driving stimuli, touch, reward, and video recording), allowing a single researcher to manage cognitive training and testing of many subjects across multiple home environments from one place. \index{CageLab}
 
 ```{=typst}
 #minitoc
@@ -41,7 +43,7 @@ The system is built on four principles:
 > [!info]
 > While @fig:components shows just one **Control-PC** and one **CageLab-Box**, the system supports a many-to-many configuration.
 
-[^dis]: If necessary a researcher can run the control interface and experiment from the same system; this is useful for debugging & development for example, or if there is no Control-PC available. But remote control is simply more efficient. 
+[^dis]: If necessary a researcher can run the control interface and experiment from the same system; this is useful for debugging & development for example, or if there is no Control-PC or no network available. You can either use a remote keyboard/mouse, or a portable WiFi router and a nearby laptop to manage the CegaBox. Remote control is simply more efficient. 
 
 
 ## Key Components at a Glance
@@ -57,10 +59,10 @@ The system is built on four principles:
 | **SSH** | remote access server/client\index{SSH}  | System | Both |
 | **Ansible** | Group automation, updates, and maintenance | Python | Control-PC |
 | **NetBird** | WireGuard-based VPN mesh for cross-site connectivity\index{NetBird}  | Go | Both |
-| **Alyx** | Optional but recommended Database\index{Alyx} to store daily session data  | Python | Separate server |
+| **Alyx** & **Minio* | Optional but recommended Database\index{Alyx} and data server to store daily session [meta]data  | Python | Separate server |
 :Key components []{#tbl:comps}
 
-## Architecture Deep-Dive: HTTP API + ØMQ Bridge
+## Architecture Deep-Dive: HTTP API + ØMQ Local Bridge
 
 `cogmoteGO` exposes two interfaces:
 
@@ -113,7 +115,6 @@ sequenceDiagram
 
 
 This chapter covers software installation for both the **CageLab-Box** (the remote experiment computer/kiosk) and the **Control-PC** (the researcher's workstation).
-
 
 ```{=typst}
 #minitoc
@@ -995,9 +996,47 @@ A visual oddity detection task. Three stimuli are shown; two are identical, one 
 
 A touch-and-drag task where subjects must move a stimulus to one of two target locations, testing categorisation or spatial matching.
 
-### IED Morphobes Variants \index{Tasks!IED morphobes}
+### IED Morphobes (`startIEDmorphobes`) \index{Tasks!IED morphobes}
 
-`startIEDmorphobes` and `startIEDmorphobes4D` extend the IED task with morphed stimulus continua, allowing parametric control of stimulus similarity. The 4D variant operates across four stimulus dimensions.
+`startIEDmorphobes` extends the IED task with the procedural morphobes
+microorganism dataset, giving parametric control of stimulus similarity
+across four dimensions (shape, colour, appendage, texture). A single
+unified function supports both 2-target and 4-target configurations.
+
+**Dimensions**: two dimensions are chosen as the intra-dimensional (`idDimension`)
+and extra-dimensional (`edDimension`) dimensions. The ID dimension is relevant
+for sets 1-2 (SD/SR/CD/CR/IDS/IDR) and the ED dimension becomes relevant at
+set 3 (EDS/EDR). The remaining two dimensions are the distractors; they can be
+held neutral, shown at fixed values, or randomised from the dataset levels each
+trial. All level values are read from the dataset metadata
+(`clutil.iedMorphobesConfig`), so every presented sample always resolves to a
+real stimulus.
+
+**Parameters**:
+
+| Parameter | Default | Description |
+|-----------|---------|-------------|
+| `taskType` | `'sd cd cr ids idr eds edr'` | Stage sequence |
+| `numTargets` | 2 | 2 (1×2 grid) or 4 (2×2 grid) targets |
+| `idDimension` | `'colour'` | Intra-dimensional (relevant) dimension |
+| `edDimension` | `'shape'` | Extra-dimensional (relevant from EDS) dimension |
+| `distractors` | `false` (2 targets) / `true` (4 targets) | Show the two non-ID/ED dimensions; `false` holds them neutral |
+| `randomiseDistractors` | `true` | Draw distractor values from the dataset levels each trial; `false` uses the fixed values |
+| `distractorOne` | 0 | Fixed value for the first non-ID/ED dimension |
+| `distractorTwo` | 0 | Fixed value for the second non-ID/ED dimension |
+| `useExemplars` | `false` (2 targets) / `true` (4 targets) | Draw a fresh exemplar from the dataset each trial; `false` uses exemplar 0 |
+| `criterion` | 6 | Consecutive correct to advance stage |
+| `maxIncorrect` | 50 | Incorrect trials on a stage before task terminates |
+| `objectSize` | 8° | Stimulus size |
+| `objectSep` | 12° | Separation between targets |
+| `sampleY` | 0° | Vertical position of the grid |
+| `trialTime` | 5.0s | Response window |
+| `targetHoldTime` | 0.2s | Touch hold requirement |
+: IED morphobes parameters []{#tbl:iedmorphobes}
+
+**Stage meanings** follow the CANTAB IED sequence: `sd` simple discrimination,
+`sr` reversal, `cd` compound discrimination, `cr` compound reversal, `ids`/`idr`
+intra-dimensional shift/reversal, `eds`/`edr` extra-dimensional shift/reversal.
 
 ## The theConductor Command API \index{theConductor!command API}
 

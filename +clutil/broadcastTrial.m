@@ -29,7 +29,7 @@ function broadcastTrial(in, r, dt, isRunning)
 		'session_id', sid,...
 		'hostname', r.hostname, 'version', r.version,...
 		'comment', r.comments(1),...
-		'session', in.session.sessionURL);
+		'session', sessionURL(in));
 		if ~isempty(tdata)
 			r.broadcast.send(tdata); 
 		end
@@ -38,4 +38,15 @@ function broadcastTrial(in, r, dt, isRunning)
 		disp(['Error in broadcastTrial: ', ME.message]);
 	end
 
+end
+
+% ===================================================================
+%> @brief Safely extract the session URL, which may be missing from in
+%> when the session has not been initialised (e.g. dummy hardware runs).
+% ===================================================================
+function sURL = sessionURL(in)
+	sURL = '';
+	if isfield(in, 'session') && isfield(in.session, 'sessionURL') && ~isempty(in.session.sessionURL)
+		sURL = in.session.sessionURL;
+	end
 end

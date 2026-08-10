@@ -23,6 +23,17 @@ function startIEDmorphobes(in)
 	%   in.edDimension = 'shape';  % 'shape','colour','appendage','texture' — ED dim
 	%   in.criterion = 6;         % consecutive correct to advance
 	%   in.maxIncorrect = 50;     % incorrect trials on stage before task terminates
+	%   in.distractors = true;    % show the two non-ID/ED dimensions; false holds
+	%                             %   them neutral (0). Default: false for 2 targets,
+	%                             %   true for 4 targets.
+	%   in.randomiseDistractors = true; % draw distractor values from the dataset
+	%                             %   levels each trial; false uses the fixed values
+	%                             %   below. Ignored when distractors=false.
+	%   in.distractorOne = 0;     % fixed value for the first non-ID/ED dimension
+	%   in.distractorTwo = 0;     % fixed value for the second non-ID/ED dimension
+	%   in.useExemplars = true;   % draw a fresh exemplar from the dataset each
+	%                             %   trial; false uses exemplar 0. Default: false
+	%                             %   for 2 targets, true for 4 targets.
 	%   in.objectSize = 8;        % size of objects in degrees
 	%   in.objectSep = 12;        % separation of objects in degrees
 	%   in.sampleY = 0;           % vertical centre of the grid in degrees
@@ -31,6 +42,14 @@ function startIEDmorphobes(in)
 	%   in.morphobesFolder = '';  % morphobes dataset folder
 	%                              %   defaults to resources/morphobes
 	%                              %   (legacy: morphobes_ied / morphobes_ied4d)
+	%
+	% The per-set stimulus specification (which morphobe samples are shown on
+	% each trial) is computed by clutil.iedMorphobesConfig(in, metaTable):
+	% sets 1-2 use the ID dimension as the relevant dimension, set 3 (EDS/EDR)
+	% switches to the ED dimension, and the remaining dimensions are presented
+	% as fixed or randomised distractors according to the parameters above.
+	% All level values are derived from the dataset metadata, so they always
+	% resolve to real stimuli.
 	%
 	% Stage meanings (CANTAB IED sequence):
 	%   sd  - Simple Discrimination: ID dimension varies; distractors neutral.
@@ -112,7 +131,7 @@ function startIEDmorphobes(in)
 		in.morphobesFolder = candidates{idx};
 	end
 
-	bgName = 'redmarbleA.jpg';
+	bgName = 'abstract7.jpg';
 	if numTargets == 4
 		prefix = 'IEDmorphobes4D';
 	else
@@ -137,35 +156,25 @@ function startIEDmorphobes(in)
 				metaTable.exemplar == exemplar)));
 
 		%% ============================dimension level configuration
-		% Shared config helper so tests can validate levels against the
-		% dataset metadata without running the task.
-		config = clutil.iedMorphobesConfig(numTargets);
-		dimLevels = config.dimLevels;
-		setExemplars = config.setExemplars;
-
-		% Warn if the ED dimension is constant in the final set (EDS/EDR):
-		% the 2D config only varies shape+colour, so appendage/texture ED
-		% shifts are only meaningful with numTargets=4.
-		if numel(unique(dimLevels.(in.edDimension)(3, :))) < 2
-			warning('startIEDmorphobes:ConstantEDDimension', ...
-				'edDimension ''%s'' has constant levels in set 3 (EDS/EDR). For a meaningful ED shift use numTargets=4 (4D config varies all dimensions).', ...
-				in.edDimension);
-		end
+		% Per-set stimulus specification derived from the task settings
+		% and validated against the morphobes metadata table. Every level
+		% value is taken from the dataset, so lookups always resolve.
+		config = clutil.iedMorphobesConfig(in, metaTable);
+		numTargets = config.numTargets;
 
 		%% ============================create targets in grid
-		targetL = imageStimulus('size', in.objectSize, 'randomiseSelection', false);
-		targets = metaStimulus('stimuli', repmat({targetL}, 1, numTargets));
-		for i = 1:numTargets
-			targets{i} = clone(targetL);
-		end
-
-		% Grid positions: 1x2 (left/right) or 2x2
-		if numTargets == 4
-			posX = [-in.objectSep/2, in.objectSep/2, -in.objectSep/2, in.objectSep/2];
-			posY = [in.objectSep/2, in.objectSep/2, -in.objectSep/2, -in.objectSep/2];
-		else
+		target1 = imageStimulus('size', in.objectSize, 'randomiseSelection', false);
+		target2 = imageStimulus('size', in.objectSize, 'randomiseSelection', false);
+		if numTargets == 2	
+			targets = metaStimulus('stimuli', {target1 target2});
 			posX = [-in.objectSep/2, in.objectSep/2];
 			posY = [0, 0];
+		else
+			target3 = imageStimulus('size', in.objectSize, 'randomiseSelection', false);
+			target4 = imageStimulus('size', in.objectSize, 'randomiseSelection', false);
+			targets = metaStimulus('stimuli', {targetL targetR target3 target4});
+			posX = [-in.objectSep/2, in.objectSep/2, -in.objectSep/2, in.objectSep/2];
+			posY = [in.objectSep/2, in.objectSep/2, -in.objectSep/2, -in.objectSep/2];
 		end
 		for i = 1:numTargets
 			targets{i}.xPosition = posX(i);
@@ -178,7 +187,6 @@ function startIEDmorphobes(in)
 		setup(r.fix, sM);
 		setup(targets, sM);
 		hide(targets);
-		targets.edit(1:numTargets, 'colourOut', [1 1 1]);
 
 		in.doNegation = true;
 
@@ -207,7 +215,7 @@ function startIEDmorphobes(in)
 			%% ==============================initialise trial
 			r = clutil.initTrialVariables(r);
 			txt = '';
-			fail = false; hld = false;
+			fail = false; hld = false; tch = false; % tch also set inside testHold
 
 			%% ==============================determine stage parameters
 			r.stage = stages(r.stageIdx);
@@ -221,12 +229,11 @@ function startIEDmorphobes(in)
 				setNum = 3;
 			end
 
-			% Relevant dimension: ID for sets 1-2, ED for set 3
-			if setNum <= 2
-				relDim = in.idDimension;
-			else
-				relDim = in.edDimension;
-			end
+			% Per-set specification: relevant dimension and its levels,
+			% distractor policy and exemplar handling, all derived from
+			% the dataset metadata by clutil.iedMorphobesConfig.
+			setCfg = config.sets(setNum);
+			relDim = setCfg.relDim;
 
 			% Correct value index: 1 for non-reversal, 2 for reversal
 			if ismember(r.stage, {'sr','cr','idr','edr'})
@@ -235,54 +242,33 @@ function startIEDmorphobes(in)
 				correctIdx = 1;
 			end
 
-			% Distractor behavior: constant (SD/SR) or randomised (CD+)
-			distractorsConstant = ismember(r.stage, {'sd','sr'});
-
-			% Exemplar for this set
-			exemplar = setExemplars(setNum);
-
-			% Distractor dimensions
-			allDims = {'shape','colour','appendage','texture'};
-			distDims = allDims(~strcmp(allDims, relDim));
-
-			% Log trial parameters
-			r.store.stage = r.stage;
-			r.store.stageIdx = r.stageIdx;
-			r.store.stagesTotal = r.stagesTotal;
-			r.store.consecutiveCorrect = r.consecutiveCorrect;
-			r.store.stageIncorrect = r.stageIncorrect;
-			r.store.stageTrialN = r.stageTrialN;
-			r.store.stagesCompleted = r.stagesCompleted;
-			r.store.taskFailed = r.taskFailed;
-			r.store.criterion = in.criterion;
-			r.store.maxIncorrect = in.maxIncorrect;
-			r.store.relDim = string(relDim);
-			r.store.idDim = string(in.idDimension);
-			r.store.edDim = string(in.edDimension);
-			r.store.setNum = setNum;
-			r.store.exemplar = exemplar;
-			r.store.distractorsConstant = distractorsConstant;
-			r.store.numTargets = numTargets;
-
 			%% ==============================select stimuli for targets
-			% Relevant dimension: unique values from current set
-			relLevels = dimLevels.(relDim)(setNum, :);
-
 			% Stimulus values for targets (column = target)
 			stimVals = struct('shape', zeros(1, numTargets), 'colour', zeros(1, numTargets), ...
 				'appendage', zeros(1, numTargets), 'texture', zeros(1, numTargets));
-			stimVals.(relDim) = relLevels;
+			stimVals.(relDim) = setCfg.relLevels;
 
-			% Set distractor values
-			if distractorsConstant
-				for d = 1:length(distDims)
-					stimVals.(distDims{d})(:) = 0;
+			% Non-relevant dimensions: neutral (distractors=false), fixed
+			% values, or a fresh random draw from the dataset levels.
+			for d = 1:numel(setCfg.nonRelevantDims)
+				dim = setCfg.nonRelevantDims{d};
+				if config.distractors && config.randomiseDistractors
+					pool = setCfg.distractorPools{d};
+					if numel(pool) >= numTargets
+						stimVals.(dim) = pool(randperm(numel(pool), numTargets));
+					else
+						stimVals.(dim) = pool(randi(numel(pool), 1, numTargets));
+					end
+				else
+					stimVals.(dim) = setCfg.distractorValues{d};
 				end
+			end
+
+			% Exemplar for this trial: fixed, or a fresh draw from the dataset
+			if config.useExemplars
+				exemplar = setCfg.exemplarPool(randi(numel(setCfg.exemplarPool)));
 			else
-				for d = 1:length(distDims)
-					availLv = dimLevels.(distDims{d})(setNum, :);
-					stimVals.(distDims{d}) = availLv(randperm(numTargets));
-				end
+				exemplar = setCfg.exemplar;
 			end
 
 			% Randomise positions
@@ -299,7 +285,29 @@ function startIEDmorphobes(in)
 			% Set correct target
 			targets.fixationChoice = idx(correctIdx);
 
-			% Log stimulus config
+			% Log trial parameters
+			r.store.stage = r.stage;
+			r.store.stageIdx = r.stageIdx;
+			r.store.stagesTotal = r.stagesTotal;
+			r.store.consecutiveCorrect = r.consecutiveCorrect;
+			r.store.stageIncorrect = r.stageIncorrect;
+			r.store.stageTrialN = r.stageTrialN;
+			r.store.stagesCompleted = r.stagesCompleted;
+			r.store.taskFailed = r.taskFailed;
+			r.store.criterion = in.criterion;
+			r.store.maxIncorrect = in.maxIncorrect;
+			r.store.relDim = string(relDim);
+			r.store.idDim = string(config.idDimension);
+			r.store.edDim = string(config.edDimension);
+			r.store.setNum = setNum;
+			r.store.exemplar = exemplar;
+			r.store.numTargets = numTargets;
+			r.store.distractors = config.distractors;
+			r.store.randomiseDistractors = config.randomiseDistractors;
+			r.store.useExemplars = config.useExemplars;
+			r.store.distractorDims = strjoin(config.distractorDims, ',');
+			r.store.distractorOne = config.distractorOne;
+			r.store.distractorTwo = config.distractorTwo;
 			r.store.idx = idx;
 			r.store.correctIdx = correctIdx;
 			r.store.stimVals = stimVals;
@@ -308,22 +316,24 @@ function startIEDmorphobes(in)
 			r.store.appendageVals = stimVals.appendage;
 			r.store.textureVals = stimVals.texture;
 
-			% Trial info
+			% Trial info — stage, ID/ED dimensions, correct target, distractor values
 			r.sampleNames = pngs;
 			r.summary = sprintf(...
-				"%dD | Stage: %s(%d/%d) | RelDim: %s | Excplr: %d | Correct: %d | SHA:%s CLA:%s APA:%s TXA:%s", ...
-				numTargets, upper(r.stage), r.stageIdx, r.stagesTotal, ...
-				relDim, exemplar, idx(correctIdx), ...
+				"%dD | Trial %d | Stage: %s(%d/%d) | ID: %s | ED: %s | Rel: %s | Correct: T%d | Exemplar: %d | SHA:[%s] CLA:[%s] APA:[%s] TXA:[%s]", ...
+				numTargets, r.loopN, upper(r.stage), r.stageIdx, r.stagesTotal, ...
+				config.idDimension, config.edDimension, relDim, ...
+				idx(correctIdx), exemplar, ...
 				strjoin(string(stimVals.shape),","), strjoin(string(stimVals.colour),","), ...
 				strjoin(string(stimVals.appendage),","), strjoin(string(stimVals.texture),","));
+			r.store.trialInfo = r.summary;
+			addMessage(r.tL, r.loopN, GetSecs, [], r.summary, "getsecs", "Experimental-note");
 
-			showSet(targets, 1);
 			update(targets);
 
 			%% ==============================Wait for release + initiate
 			r = clutil.ensureTouchRelease(r, tM, sM, false);
 			[r, dt, r.vblInitT] = clutil.initTouchTrial(r, in, tM, sM, dt);
-
+			disp("===> " + r.summary);
 			%% ==============================stimulus presentation
 			if matches(string(r.touchInit), "yes")
 
@@ -336,19 +346,25 @@ function startIEDmorphobes(in)
 					repmat(in.trialTime, 1, length(x)), ...
 					repmat(in.targetHoldTime, 1, length(x)), ones(1, length(x)));
 
+				show(targets);
+
 				if ~isempty(r.sbg); draw(r.sbg); end
-				vbl = flip(sM);
+				vbl = flip(sM); 
 				r.stimOnsetTime = vbl;
 				r.vblInit = vbl + r.sv.ifi;
+				endTime = r.vblInit + in.trialTime;
 				syncTime(tM, r.vblInit);
 
-				while isempty(r.touchResponse) && vbl <= (r.vblInit + in.trialTime)
+				while isempty(r.touchResponse) && vbl < endTime
 					if ~isempty(r.sbg); draw(r.sbg); end
 					draw(targets);
-					if in.debug && ~isempty(tM.x) && ~isempty(tM.y)
-						drawText(sM, txt);
-						xy = sM.toPixels([tM.x tM.y]);
-						Screen('glPoint', sM.win, [1 0 0], xy(1), xy(2), 10);
+					if in.debug
+						drawText(sM, r.summary, 0, sM.screenVals.topInDegrees);
+						if ~isempty(tM.x) && ~isempty(tM.y)
+							drawText(sM, txt);
+							xy = sM.toPixels([tM.x tM.y]);
+							Screen('glPoint', sM.win, [1 0 0], xy(1), xy(2), 10);
+						end
 					end
 					vbl = flip(sM);
 					% [out, held, heldtime, release, releasing, searching, failed, touch, negation] = testHold
