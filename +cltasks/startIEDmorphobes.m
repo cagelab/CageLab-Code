@@ -5,11 +5,17 @@ function startIEDmorphobes(in)
 	%
 	% This unified function supports both 2-target (2D) and 4-target (4D)
 	% configurations via the in.numTargets parameter:
-	%   numTargets = 2 — two targets (left/right), colour is ID, shape is ED.
-	%                 Uses the unified morphobes dataset (shape + colour levels).
-	%   numTargets = 4 — four targets in a 2x2 grid, four dimensions (shape,
-	%                 colour, appendage, texture) with configurable ID/ED
-	%                 assignment. Uses the unified morphobes dataset.
+	%   numTargets = 2 — two targets (left/right); any of the four dimensions
+	%                 (shape, colour, appendage, texture) may be ID or ED.
+	%   numTargets = 4 — four targets placed radially, equidistant from the
+	%                 touch-initiation point; ID/ED must be colour or shape
+	%                 (appendage/texture carry only 5 dataset levels, not
+	%                 enough for two disjoint 4-sample sets).
+	% The stimulus logic is identical for both target counts: each
+	% task-relevant dimension provides two disjoint random sample sets
+	% (Set A for sd/sr/cd/cr, Set B for ids/idr/eds/edr) and the correct
+	% level per stage follows the CANTAB sequence (see
+	% clutil.iedMorphobesConfig).
 	%
 	% The dataset folder defaults to resources/morphobes (falling back to
 	% the legacy names morphobes_ied4d / morphobes_ied if present).
@@ -36,7 +42,17 @@ function startIEDmorphobes(in)
 	%                             %   for 2 targets, true for 4 targets.
 	%   in.objectSize = 8;        % size of objects in degrees
 	%   in.objectSep = 12;        % separation of objects in degrees
-	%   in.sampleY = 0;           % vertical centre of the grid in degrees
+	%   in.distractorCenterAngle = 270; % centre angle (deg) of the radial layout
+	%                             %   (PTB: 0 = right, 90 = down, 270 = up)
+	%   in.distractorSpreadAngle = 0; % half-width (deg) of the radial arc;
+	%                             %   <= 0 = full circle evenly spaced, rotated
+	%                             %   by the centre angle; > 0 = arc spanning
+	%                             %   centre +/- spread with the cardinal
+	%                             %   slot(s) pulled in by the object-size
+	%                             %   hypotenuse modifier (startThings pattern)
+	%   in.sampleY = 0;           % unused with radial positioning (kept for
+	%                             %   compatibility; targets sit at in.objectSep
+	%                             %   from the touch-initiation point)
 	%   in.trialTime = 5.0;       % max trial time in seconds
 	%   in.targetHoldTime = 0.2;  % target hold time in seconds
 	%   in.morphobesFolder = '';  % morphobes dataset folder
@@ -46,8 +62,10 @@ function startIEDmorphobes(in)
 	% The per-set stimulus specification (which morphobe samples are shown on
 	% each trial) is computed by clutil.iedMorphobesConfig(in, metaTable):
 	% sets 1-2 use the ID dimension as the relevant dimension, set 3 (EDS/EDR)
-	% switches to the ED dimension, and the remaining dimensions are presented
-	% as fixed or randomised distractors according to the parameters above.
+	% switches to the ED dimension; each set shows all numTargets levels of
+	% the relevant and extra dimensions (extra held fixed in sd/sr), with the
+	% two remaining dimensions as fixed or randomised persistent distractors.
+	% The correct level for the current stage is config.correct.(stage).
 	% All level values are derived from the dataset metadata, so they always
 	% resolve to real stimuli.
 	%
@@ -155,6 +173,16 @@ function startIEDmorphobes(in)
 				metaTable.texture_level == textureLv & ...
 				metaTable.exemplar == exemplar)));
 
+		%% ============================validate all stages
+		validTaskTypes = {'sd','sr','cd','cr','ids','idr','eds','edr'};
+		for i = 1:length(stages)
+			if ~ismember(stages(i), validTaskTypes)
+				warning('Unknown task type %s. Defaulting to SD.', stages(i));
+				stages(i) = 'sd';
+			end
+		end
+		in.stages = stages;
+
 		%% ============================dimension level configuration
 		% Per-set stimulus specification derived from the task settings
 		% and validated against the morphobes metadata table. Every level
@@ -162,23 +190,48 @@ function startIEDmorphobes(in)
 		config = clutil.iedMorphobesConfig(in, metaTable);
 		numTargets = config.numTargets;
 
-		%% ============================create targets in grid
+		%% ============================create targets radially around fixation
+		% Targets are placed at equal distance (in.objectSep) from the
+		% touch-initiation point (r.fix), using polar->cartesian conversion
+		% — the startThings positioning pattern. PTB convention: 0deg is
+		% +x (RIGHT) and 90deg is +y (DOWN). distractorCenterAngle and
+		% distractorSpreadAngle control the layout: spread <= 0 gives an
+		% evenly spaced full circle rotated by the centre angle; spread > 0
+		% gives an arc centred on the centre angle spanning +/- spread.
+		% In the arc case the position(s) nearest the centre angle are
+		% pulled in by the object-size hypotenuse modifier so large objects
+		% do not inflate the inter-target spacing. The per-trial position
+		% shuffle is applied in the trial loop via updateXY; here we only
+		% give setup() valid start values.
 		target1 = imageStimulus('size', in.objectSize, 'randomiseSelection', false);
 		target2 = imageStimulus('size', in.objectSize, 'randomiseSelection', false);
 		if numTargets == 2	
 			targets = metaStimulus('stimuli', {target1 target2});
-			posX = [-in.objectSep/2, in.objectSep/2];
-			posY = [0, 0];
 		else
 			target3 = imageStimulus('size', in.objectSize, 'randomiseSelection', false);
 			target4 = imageStimulus('size', in.objectSize, 'randomiseSelection', false);
-			targets = metaStimulus('stimuli', {targetL targetR target3 target4});
-			posX = [-in.objectSep/2, in.objectSep/2, -in.objectSep/2, in.objectSep/2];
-			posY = [in.objectSep/2, in.objectSep/2, -in.objectSep/2, -in.objectSep/2];
+			targets = metaStimulus('stimuli', {target1 target2 target3 target4});
 		end
+		if in.distractorSpreadAngle <= 0
+			angs = linspace(0, 360, numTargets + 1);
+			angs = angs(1:end-1) + in.distractorCenterAngle;
+			radius = repmat(in.objectSep, 1, numTargets);
+		else
+			angs = linspace(in.distractorCenterAngle - in.distractorSpreadAngle, ...
+				in.distractorCenterAngle + in.distractorSpreadAngle, numTargets);
+			mod = in.objectSize * 0.414; % modifier for the length of hypotenuse greater than side
+			radius = repmat(in.objectSep, 1, numTargets);
+			d = abs(angs - in.distractorCenterAngle);
+			radius(d == min(d)) = in.objectSep - mod;
+		end
+		% polarToCartesianPoints returns the full angle x radius grid; the
+		% diagonal pairs each angle with its own radius
+		[xAll, yAll] = sM.polarToCartesianPoints(r.fix.xPosition, r.fix.yPosition, angs(:), radius(:));
+		xpos = diag(xAll)';
+		ypos = diag(yAll)';
 		for i = 1:numTargets
-			targets{i}.xPosition = posX(i);
-			targets{i}.yPosition = posY(i) + in.sampleY;
+			targets{i}.xPosition = xpos(i);
+			targets{i}.yPosition = ypos(i);
 		end
 		targets.stimulusSets{1} = 1:numTargets;
 		targets.fixationChoice = 1;
@@ -189,16 +242,6 @@ function startIEDmorphobes(in)
 		hide(targets);
 
 		in.doNegation = true;
-
-		%% ============================validate all stages
-		validTaskTypes = {'sd','sr','cd','cr','ids','idr','eds','edr'};
-		for i = 1:length(stages)
-			if ~ismember(stages(i), validTaskTypes)
-				warning('Unknown task type %s. Defaulting to SD.', stages(i));
-				stages(i) = 'sd';
-			end
-		end
-		in.stages = stages;
 
 		%% ============================IED stage progression state
 		r.stageIdx = 1;
@@ -229,36 +272,53 @@ function startIEDmorphobes(in)
 				setNum = 3;
 			end
 
-			% Per-set specification: relevant dimension and its levels,
-			% distractor policy and exemplar handling, all derived from
+			% Per-set specification: relevant dimension and its sample
+			% set, the other task-relevant (extra) dimension, persistent
+			% distractor policy and exemplar handling — all derived from
 			% the dataset metadata by clutil.iedMorphobesConfig.
 			setCfg = config.sets(setNum);
 			relDim = setCfg.relDim;
+			extraDim = setCfg.extraDim;
 
-			% Correct value index: 1 for non-reversal, 2 for reversal
-			if ismember(r.stage, {'sr','cr','idr','edr'})
-				correctIdx = 2;
-			else
-				correctIdx = 1;
-			end
+			% Correct level for this stage: constant across its trials,
+			% chosen by the config's stage state machine (sd/sr/cd/cr
+			% share Set A, ids/idr/eds/edr share Set B; reversals pick a
+			% new level, cd keeps sr's correct level).
+			correctLevel = config.correct.(char(r.stage));
 
 			%% ==============================select stimuli for targets
 			% Stimulus values for targets (column = target)
 			stimVals = struct('shape', zeros(1, numTargets), 'colour', zeros(1, numTargets), ...
 				'appendage', zeros(1, numTargets), 'texture', zeros(1, numTargets));
-			stimVals.(relDim) = setCfg.relLevels;
 
-			% Non-relevant dimensions: neutral (distractors=false), fixed
-			% values, or a fresh random draw from the dataset levels.
-			for d = 1:numel(setCfg.nonRelevantDims)
-				dim = setCfg.nonRelevantDims{d};
+			% Relevant dimension: all numTargets levels of the sample set
+			% are shown every trial, assigned to targets in a fresh random
+			% order; the target carrying the correct level is the one to
+			% touch.
+			relVals = setCfg.relLevels(randperm(numTargets));
+			correctIdx = find(relVals == correctLevel, 1);
+			stimVals.(relDim) = relVals;
+
+			% Extra (other task-relevant) dimension: fixed for all targets
+			% in sd/sr (simple discrimination — only the relevant
+			% dimension varies), otherwise all numTargets levels of its
+			% sample set in a fresh random order per trial (compound
+			% discrimination).
+			if ismember(r.stage, {'sd','sr'})
+				stimVals.(extraDim) = repmat(setCfg.extraFixed, 1, numTargets);
+			else
+				stimVals.(extraDim) = setCfg.extraLevels(randperm(numTargets));
+			end
+
+			% Persistent distractor dimensions (the two non-ID/ED dims):
+			% neutral (distractors=false), fixed distractorOne/Two values,
+			% or one fresh random level per trial shared by all targets.
+			for d = 1:numel(setCfg.distractorDims)
+				dim = setCfg.distractorDims{d};
 				if config.distractors && config.randomiseDistractors
 					pool = setCfg.distractorPools{d};
-					if numel(pool) >= numTargets
-						stimVals.(dim) = pool(randperm(numel(pool), numTargets));
-					else
-						stimVals.(dim) = pool(randi(numel(pool), 1, numTargets));
-					end
+					v = pool(randi(numel(pool)));
+					stimVals.(dim) = repmat(v, 1, numTargets);
 				else
 					stimVals.(dim) = setCfg.distractorValues{d};
 				end
@@ -285,6 +345,15 @@ function startIEDmorphobes(in)
 			% Set correct target
 			targets.fixationChoice = idx(correctIdx);
 
+			% Position targets radially around the touch-initiation point
+			% (startThings pattern): the angle slots are fixed at equal
+			% distance from r.fix, but a fresh shuffle assigns which target
+			% occupies which slot each trial.
+			posIdx = randperm(numTargets);
+			for i = 1:numTargets
+				targets{posIdx(i)}.updateXY(xpos(i), ypos(i), true);
+			end
+
 			% Log trial parameters
 			r.store.stage = r.stage;
 			r.store.stageIdx = r.stageIdx;
@@ -297,6 +366,10 @@ function startIEDmorphobes(in)
 			r.store.criterion = in.criterion;
 			r.store.maxIncorrect = in.maxIncorrect;
 			r.store.relDim = string(relDim);
+			r.store.extraDim = string(extraDim);
+			r.store.correctLevel = correctLevel;
+			r.store.relLevels = setCfg.relLevels;
+			r.store.extraLevels = setCfg.extraLevels;
 			r.store.idDim = string(config.idDimension);
 			r.store.edDim = string(config.edDimension);
 			r.store.setNum = setNum;
@@ -309,6 +382,9 @@ function startIEDmorphobes(in)
 			r.store.distractorOne = config.distractorOne;
 			r.store.distractorTwo = config.distractorTwo;
 			r.store.idx = idx;
+			r.store.posIdx = posIdx;
+			r.store.targetX = xpos(posIdx);   % screen x (deg) per physical target
+			r.store.targetY = ypos(posIdx);   % screen y (deg) per physical target
 			r.store.correctIdx = correctIdx;
 			r.store.stimVals = stimVals;
 			r.store.shapeVals = stimVals.shape;
@@ -319,10 +395,10 @@ function startIEDmorphobes(in)
 			% Trial info — stage, ID/ED dimensions, correct target, distractor values
 			r.sampleNames = pngs;
 			r.summary = sprintf(...
-				"%dD | Trial %d | Stage: %s(%d/%d) | ID: %s | ED: %s | Rel: %s | Correct: T%d | Exemplar: %d | SHA:[%s] CLA:[%s] APA:[%s] TXA:[%s]", ...
+				"%dD | Trial %d | Stage: %s(%d/%d) | ID: %s | ED: %s | Rel: %s | Correct: T%d(lv%d) | Exemplar: %d | SHA:[%s] CLA:[%s] APA:[%s] TXA:[%s]", ...
 				numTargets, r.loopN, upper(r.stage), r.stageIdx, r.stagesTotal, ...
 				config.idDimension, config.edDimension, relDim, ...
-				idx(correctIdx), exemplar, ...
+				idx(correctIdx), correctLevel, exemplar, ...
 				strjoin(string(stimVals.shape),","), strjoin(string(stimVals.colour),","), ...
 				strjoin(string(stimVals.appendage),","), strjoin(string(stimVals.texture),","));
 			r.store.trialInfo = r.summary;

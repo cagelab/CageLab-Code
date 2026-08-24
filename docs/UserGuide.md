@@ -1006,11 +1006,21 @@ unified function supports both 2-target and 4-target configurations.
 **Dimensions**: two dimensions are chosen as the intra-dimensional (`idDimension`)
 and extra-dimensional (`edDimension`) dimensions. The ID dimension is relevant
 for sets 1-2 (SD/SR/CD/CR/IDS/IDR) and the ED dimension becomes relevant at
-set 3 (EDS/EDR). The remaining two dimensions are the distractors; they can be
-held neutral, shown at fixed values, or randomised from the dataset levels each
-trial. All level values are read from the dataset metadata
-(`clutil.iedMorphobesConfig`), so every presented sample always resolves to a
-real stimulus.
+set 3 (EDS/EDR). Each task-relevant dimension provides two disjoint random
+sample sets drawn from the dataset — Set A for `sd sr cd cr`, Set B for
+`ids idr eds edr` — so the shift stages introduce entirely new exemplars.
+With 4 targets the dataset's 8 colour/shape levels are required for two
+disjoint 4-sample sets, so ID/ED must be colour or shape; with 2 targets any
+of the four dimensions may be used. The correct (rewarded) level of the
+relevant dimension is fixed per stage: `sd` random, `sr` a new random, `cd`
+keeps the `sr` level, `cr` a new random, `ids`/`idr` random within Set B, and
+`eds`/`edr` random within the shape Set B. The remaining two dimensions are
+persistent distractors; they can be held neutral, shown at fixed values, or
+randomised from the dataset levels each trial. In `sd`/`sr` the extra
+dimension is held at one fixed level for all targets; from `cd` onward both
+task-relevant dimensions vary on each trial. All level values are read from
+the dataset metadata (`clutil.iedMorphobesConfig`), so every presented sample
+always resolves to a real stimulus.
 
 **Parameters**:
 
@@ -1021,14 +1031,16 @@ real stimulus.
 | `idDimension` | `'colour'` | Intra-dimensional (relevant) dimension |
 | `edDimension` | `'shape'` | Extra-dimensional (relevant from EDS) dimension |
 | `distractors` | `false` (2 targets) / `true` (4 targets) | Show the two non-ID/ED dimensions; `false` holds them neutral |
-| `randomiseDistractors` | `true` | Draw distractor values from the dataset levels each trial; `false` uses the fixed values |
+| `randomiseDistractors` | `true` | Draw one random distractor value from the dataset levels each trial (same level on all targets); `false` uses the fixed values |
 | `distractorOne` | 0 | Fixed value for the first non-ID/ED dimension |
 | `distractorTwo` | 0 | Fixed value for the second non-ID/ED dimension |
 | `useExemplars` | `false` (2 targets) / `true` (4 targets) | Draw a fresh exemplar from the dataset each trial; `false` uses exemplar 0 |
 | `criterion` | 6 | Consecutive correct to advance stage |
 | `maxIncorrect` | 50 | Incorrect trials on a stage before task terminates |
 | `objectSize` | 8° | Stimulus size |
-| `objectSep` | 12° | Separation between targets |
+| `objectSep` | 12° | Distance of each target from the touch-initiation point (radial radius) |
+| `distractorCenterAngle` | 270° | Centre angle of the radial layout (PTB: 0° = right, 90° = down, 270° = up); rotates the full-circle layout when spread is 0 |
+| `distractorSpreadAngle` | 0° | Half-width of the radial arc; `0` = full circle evenly spaced around the centre angle; `> 0` = arc with the cardinal slot(s) pulled in by the object-size modifier |
 | `sampleY` | 0° | Vertical position of the grid |
 | `trialTime` | 5.0s | Response window |
 | `targetHoldTime` | 0.2s | Touch hold requirement |
